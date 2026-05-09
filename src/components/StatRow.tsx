@@ -31,7 +31,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing.xs,
+    gap: spacing.sm,
   },
-  label: { color: colors.textMuted, fontSize: font.sm },
-  value: { fontSize: font.md, fontWeight: '700' },
+  label: { flex: 1, color: colors.textMuted, fontSize: font.sm, lineHeight: 20 },
+  value: { flexShrink: 1, fontSize: font.md, fontWeight: '700', textAlign: 'right' },
 });

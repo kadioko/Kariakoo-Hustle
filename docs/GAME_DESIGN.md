@@ -28,10 +28,21 @@ Kariakoo Hustle: Biashara Empire should feel like a local Tanzanian hustle story
 - Dashboard shows runway, active debt, and the next product/upgrade/worker/location goals.
 - Product risk now creates returned/faulty units, quality losses, and reputation pressure.
 - Inventory clearance lets players recover cash from slow stock at a visible discount.
+- Daily missions create short-term goals and automatic rewards after each completed day.
 
 ## Next Good Upgrades
 
-### 1. Deeper debt and loan system
+### 1. Mission streaks and weekly goals
+
+Daily missions are simple one-day goals. A future layer can add:
+
+- 3-day streak bonuses
+- Weekly revenue goals
+- Location-specific missions
+- Product-category missions
+- Special holiday missions
+
+### 2. Deeper debt and loan system
 
 The MVP has simple daily-repayment loans. A fuller system can add:
 
@@ -42,7 +53,7 @@ The MVP has simple daily-repayment loans. A fuller system can add:
 - Reputation effect
 - Optional early repayment
 
-### 2. Product quality
+### 3. Product quality
 
 Risk already affects returns. A deeper future layer can add product-quality tiers:
 
@@ -52,7 +63,7 @@ Risk already affects returns. A deeper future layer can add product-quality tier
 
 This would make supplier choice events more meaningful.
 
-### 3. Seasonal calendar
+### 4. Seasonal calendar
 
 Add weekly or monthly modifiers:
 
@@ -60,7 +71,7 @@ Add weekly or monthly modifiers:
 - Rainy days hurt foot traffic but help umbrellas/rain products.
 - Holiday season boosts clothes, food, cosmetics, and gifts.
 
-### 4. Customer segments
+### 5. Customer segments
 
 Different locations can favor different products:
 
@@ -69,7 +80,7 @@ Different locations can favor different products:
 - Mlimani: electronics, cosmetics, fashion
 - Arusha/Zanzibar: tourism-friendly products
 
-### 5. Branch managers
+### 6. Branch managers
 
 Let unlocked locations generate smaller passive income if a branch manager is hired.
 

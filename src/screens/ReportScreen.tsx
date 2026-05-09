@@ -43,6 +43,13 @@ const ReportItem: React.FC<{ r: DailyReport; lang: 'sw' | 'en' }> = ({ r, lang }
       {eventTitle && (
         <Text style={styles.reportEvent}>⚡ {eventTitle}</Text>
       )}
+      {r.missionResults && r.missionResults.length > 0 && (
+        <Text style={styles.reportMission}>
+          🎯 {r.missionResults.filter((mission) => mission.completed).length}/{r.missionResults.length}
+          {' '}
+          {lang === 'sw' ? 'misheni zimekamilika' : 'missions completed'}
+        </Text>
+      )}
       {r.expenseBreakdown && (
         <Text style={styles.reportBreakdown}>
           {lang === 'sw' ? 'Kodi' : 'Rent'}: {formatTZS(r.expenseBreakdown.rent)} · Transport: {formatTZS(r.expenseBreakdown.transport)}
@@ -150,6 +157,7 @@ const styles = StyleSheet.create({
   reportSub: { fontSize: font.xs, color: colors.textMuted, lineHeight: 18 },
   reportBest: { fontSize: font.xs, color: colors.primary, fontWeight: '700', marginTop: 4 },
   reportEvent: { fontSize: font.xs, color: colors.warning, marginTop: 2 },
+  reportMission: { fontSize: font.xs, color: colors.primary, fontWeight: '800', marginTop: 3 },
   reportQuality: { fontSize: font.xs, color: colors.danger, fontWeight: '700', marginTop: 4 },
   reportBreakdown: { fontSize: font.xs, color: colors.textMuted, marginTop: 4, lineHeight: 18 },
   empty: { alignItems: 'center', paddingVertical: 48 },

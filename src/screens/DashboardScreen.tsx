@@ -133,6 +133,7 @@ export const DashboardScreen: React.FC = () => {
   const nextLocation = [...LOCATIONS]
     .filter((loc) => !state.locations.includes(loc.id))
     .sort((a, b) => a.unlockCost - b.unlockCost)[0];
+  const todayMissions = state.missions.filter((mission) => mission.day === state.day);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
@@ -200,6 +201,31 @@ export const DashboardScreen: React.FC = () => {
             </View>
             <ProgressBar value={state.xp} max={xpNeeded} height={10} color={colors.accent} />
           </Card>
+
+          {todayMissions.length > 0 && (
+            <Card>
+              <Text style={styles.sectionLabel}>
+                {lang === 'sw' ? 'Misheni za Leo' : "Today's Missions"}
+              </Text>
+              {todayMissions.map((mission) => (
+                <View key={mission.id} style={styles.missionRow}>
+                  <Text style={styles.missionIcon}>🎯</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.missionTitle}>
+                      {lang === 'sw' ? mission.title : mission.titleEn}
+                    </Text>
+                    <Text style={styles.missionReward}>
+                      {[
+                        mission.reward.cash ? `+${formatTZS(mission.reward.cash)}` : null,
+                        mission.reward.xp ? `+${mission.reward.xp} XP` : null,
+                        mission.reward.reputation ? `+${mission.reward.reputation} ${lang === 'sw' ? 'sifa' : 'rep'}` : null,
+                      ].filter(Boolean).join(' · ')}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </Card>
+          )}
 
           <Card alt>
             <Text style={styles.sectionLabel}>
@@ -465,6 +491,15 @@ const styles = StyleSheet.create({
   eventBannerEmoji: { fontSize: 28 },
   eventBannerTitle: { fontSize: font.sm, fontWeight: '800', color: colors.text },
   eventBannerSub: { fontSize: font.xs, color: colors.textMuted, marginTop: 2 },
+  missionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
+    alignItems: 'flex-start',
+  },
+  missionIcon: { fontSize: 18 },
+  missionTitle: { fontSize: font.sm, fontWeight: '800', color: colors.text },
+  missionReward: { fontSize: font.xs, color: colors.success, marginTop: 2, fontWeight: '700' },
   xpRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
   xpLabel: { fontSize: font.sm, fontWeight: '800', color: colors.text },
   xpVal: { fontSize: font.xs, color: colors.textMuted },

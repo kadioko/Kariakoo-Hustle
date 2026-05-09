@@ -27,6 +27,7 @@ import { Button } from '@/components/Button';
 import { StatRow } from '@/components/StatRow';
 import { Header } from '@/components/Header';
 import { ACHIEVEMENTS } from '@/data/achievements';
+import packageJson from '../../package.json';
 
 const SettingRow: React.FC<{
   label: string;
@@ -85,7 +86,9 @@ function BusinessNameModal({
             <Button title={t('cancel', lang)} onPress={onClose} variant="outline" size="sm" style={{ flex: 1 }} />
             <Button
               title={t('ok', lang)}
-              onPress={() => { if (name.trim()) onSave(name.trim()); }}
+              onPress={() => {
+                if (name.trim()) onSave(name.trim());
+              }}
               size="sm"
               style={{ flex: 1 }}
               disabled={!name.trim()}
@@ -97,12 +100,74 @@ function BusinessNameModal({
   );
 }
 
+function CheatCodeModal({
+  lang,
+  onApply,
+  onClose,
+}: {
+  lang: 'sw' | 'en';
+  onApply: (code: string) => void;
+  onClose: () => void;
+}) {
+  const [code, setCode] = useState('');
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.modalBox}>
+          <Text style={styles.modalTitle}>🔐 Secret Menu</Text>
+          <Text style={styles.aboutText}>
+            {lang === 'sw'
+              ? 'Weka cheat code ya majaribio. Hii ni kwa QA na balancing tu.'
+              : 'Enter a test cheat code. This is only for QA and balancing.'}
+          </Text>
+          <TextInput
+            style={styles.nameInput}
+            value={code}
+            onChangeText={setCode}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            placeholder="KARIOO50K"
+            placeholderTextColor={colors.textMuted}
+            returnKeyType="done"
+            onSubmitEditing={() => onApply(code)}
+          />
+          <View style={styles.modalBtns}>
+            <Button title={t('cancel', lang)} onPress={onClose} variant="outline" size="sm" style={{ flex: 1 }} />
+            <Button
+              title={lang === 'sw' ? 'Tumia Code' : 'Apply Code'}
+              onPress={() => onApply(code)}
+              size="sm"
+              style={{ flex: 1 }}
+              disabled={!code.trim()}
+            />
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 export const SettingsScreen: React.FC = () => {
   const nav = useNavigation<any>();
-  const { state, language, setLanguage, setSound, setVibration, setBusinessName, resetGame } = useGame();
+  const {
+    state,
+    language,
+    setLanguage,
+    setSound,
+    setVibration,
+    setBusinessName,
+    applyCheatCode,
+    resetGame,
+  } = useGame();
   const toast = useToast();
   const lang = language;
   const [showNameModal, setShowNameModal] = useState(false);
+  const [showCheatModal, setShowCheatModal] = useState(false);
+  const [secretTapCount, setSecretTapCount] = useState(0);
   const loanBalance = state.loans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
 
   const handleSaveName = (name: string) => {
@@ -134,6 +199,29 @@ export const SettingsScreen: React.FC = () => {
     ]);
   };
 
+  const handleVersionTap = () => {
+    const next = secretTapCount + 1;
+    setSecretTapCount(next);
+    if (next >= 7) {
+      setSecretTapCount(0);
+      setShowCheatModal(true);
+      toast.info(
+        lang === 'sw' ? 'Secret menu imefunguka.' : 'Secret menu unlocked.',
+        lang === 'sw' ? 'Tumia kwa majaribio tu.' : 'Use for testing only.',
+      );
+    }
+  };
+
+  const handleApplyCheat = (code: string) => {
+    const result = applyCheatCode(code);
+    if (result.ok) {
+      setShowCheatModal(false);
+      toast.success(lang === 'sw' ? result.message : result.messageEn);
+    } else {
+      toast.error(lang === 'sw' ? result.message : result.messageEn);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <Header title={`⚙️ ${t('menu_settings', lang)}`} />
@@ -146,7 +234,6 @@ export const SettingsScreen: React.FC = () => {
       />
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        {/* Language */}
         <Card>
           <Text style={styles.cardTitle}>🌐 {t('language', lang)}</Text>
           <View style={styles.langRow}>
@@ -168,7 +255,6 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </Card>
 
-        {/* Business name */}
         <Card>
           <Text style={styles.cardTitle}>🏪 {lang === 'sw' ? 'Jina la Biashara' : 'Business Name'}</Text>
           <TouchableOpacity
@@ -176,19 +262,17 @@ export const SettingsScreen: React.FC = () => {
             onPress={() => setShowNameModal(true)}
             activeOpacity={0.75}
           >
-            <Text style={styles.nameVal}>{state.businessName}</Text>
+            <Text style={styles.nameVal} numberOfLines={1}>{state.businessName}</Text>
             <Text style={styles.editBtn}>✏️ {lang === 'sw' ? 'Badilisha' : 'Edit'}</Text>
           </TouchableOpacity>
         </Card>
 
-        {/* Sound & haptics */}
         <Card>
           <Text style={styles.cardTitle}>🔊 {lang === 'sw' ? 'Sauti & Mtetemo' : 'Sound & Haptics'}</Text>
           <SettingRow label={t('sound', lang)} value={state.settings.sound} onChange={setSound} />
           <SettingRow label={t('vibration', lang)} value={state.settings.vibration} onChange={setVibration} />
         </Card>
 
-        {/* Stats snapshot */}
         <Card>
           <Text style={styles.cardTitle}>📊 {lang === 'sw' ? 'Takwimu' : 'Stats'}</Text>
           <StatRow label={t('day', lang)} value={String(state.day)} />
@@ -210,7 +294,6 @@ export const SettingsScreen: React.FC = () => {
           />
         </Card>
 
-        {/* Share */}
         <Button
           title={`📤 ${lang === 'sw' ? 'Shiriki Biashara Yako' : 'Share Your Business'}`}
           onPress={handleShare}
@@ -218,19 +301,19 @@ export const SettingsScreen: React.FC = () => {
           fullWidth
         />
 
-        {/* About */}
         <Card alt>
           <Text style={styles.cardTitle}>ℹ️ {t('about', lang)}</Text>
           <Text style={styles.aboutText}>{t('about_text', lang)}</Text>
-          <Text style={[styles.aboutText, { marginTop: spacing.sm, fontWeight: '700', color: colors.text }]}>
-            v1.1.0 — Kariakoo Hustle: Biashara Empire
-          </Text>
+          <TouchableOpacity onPress={handleVersionTap} activeOpacity={0.75}>
+            <Text style={[styles.aboutText, styles.versionText]}>
+              v{packageJson.version} · build {state.saveVersion} · Kariakoo Hustle: Biashara Empire
+            </Text>
+          </TouchableOpacity>
         </Card>
 
-        {/* Monetization placeholder */}
         <Card alt style={{ borderColor: colors.accent + '44', borderWidth: 1.5 }}>
           <Text style={styles.cardTitle}>
-            📺 {lang === 'sw' ? 'Ads — Hivi Karibuni' : 'Ads — Coming Soon'}
+            📺 {lang === 'sw' ? 'Ads - Hivi Karibuni' : 'Ads - Coming Soon'}
           </Text>
           <Text style={styles.aboutText}>
             {lang === 'sw'
@@ -239,7 +322,6 @@ export const SettingsScreen: React.FC = () => {
           </Text>
         </Card>
 
-        {/* Danger */}
         <Button
           title={`🗑️ ${t('reset_progress', lang)}`}
           onPress={handleReset}
@@ -256,6 +338,14 @@ export const SettingsScreen: React.FC = () => {
           onClose={() => setShowNameModal(false)}
         />
       )}
+
+      {showCheatModal && (
+        <CheatCodeModal
+          lang={lang}
+          onApply={handleApplyCheat}
+          onClose={() => setShowCheatModal(false)}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -267,8 +357,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing.sm,
+    gap: spacing.md,
   },
-  settingLabel: { fontSize: font.md, color: colors.text },
+  settingLabel: { flex: 1, fontSize: font.md, color: colors.text },
   langRow: { flexDirection: 'row' },
   nameRow: {
     flexDirection: 'row',
@@ -279,11 +370,12 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    gap: spacing.sm,
   },
   nameVal: { fontSize: font.md, fontWeight: '700', color: colors.text, flex: 1 },
-  editBtn: { fontSize: font.sm, color: colors.primary, fontWeight: '700' },
+  editBtn: { fontSize: font.sm, color: colors.primary, fontWeight: '700', flexShrink: 0 },
   aboutText: { fontSize: font.sm, color: colors.textMuted, lineHeight: 22 },
-  // Modal
+  versionText: { marginTop: spacing.sm, fontWeight: '700', color: colors.text },
   modalOverlay: {
     flex: 1,
     backgroundColor: '#00000066',

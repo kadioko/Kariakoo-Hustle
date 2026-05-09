@@ -1,7 +1,8 @@
 import { GameState } from '@/types';
+import { generateDailyMissions } from './missions';
 import { STARTING_CASH } from './economy';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export function createInitialState(): GameState {
   return {
@@ -16,6 +17,8 @@ export function createInitialState(): GameState {
     upgrades: [],
     workers: [],
     loans: [],
+    missions: generateDailyMissions(1, 1),
+    completedMissionIds: [],
     locations: ['kariakoo_table'],
     currentLocationId: 'kariakoo_table',
     achievements: [],
@@ -49,6 +52,13 @@ export function normalizeGameState(raw: Partial<GameState> | null | undefined): 
     upgrades: Array.isArray(raw.upgrades) ? raw.upgrades : initial.upgrades,
     workers: Array.isArray(raw.workers) ? raw.workers : initial.workers,
     loans: Array.isArray(raw.loans) ? raw.loans : initial.loans,
+    missions:
+      Array.isArray(raw.missions) && raw.missions.length > 0
+        ? raw.missions
+        : generateDailyMissions(raw.day ?? initial.day, raw.level ?? initial.level),
+    completedMissionIds: Array.isArray(raw.completedMissionIds)
+      ? raw.completedMissionIds
+      : initial.completedMissionIds,
     locations:
       Array.isArray(raw.locations) && raw.locations.length > 0
         ? raw.locations

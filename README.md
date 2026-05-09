@@ -15,6 +15,7 @@ The MVP is offline-friendly and uses AsyncStorage only. There is no backend, no 
 | Demand, risk, margin, and market insight scoring | Done |
 | Product risk can cause returns and quality losses | Done |
 | Inventory clearance sales for slow stock | Done |
+| Daily missions with auto rewards | Done |
 | Daily sales simulation | Done |
 | 29 random events, including choice events | Done |
 | Daily profit/loss reports with expense breakdowns | Done |
@@ -67,7 +68,7 @@ npm run tsc
 src/
   components/       Reusable UI components
   data/             Products, events, upgrades, workers, locations, achievements
-  game/             Economy, sales, events, progression, save defaults, product insights
+  game/             Economy, sales, events, missions, progression, save defaults, product insights
   navigation/       Stack and tab navigation
   screens/          Game screens
   state/            GameContext and actions
@@ -78,6 +79,7 @@ src/
 docs/
   GAME_DESIGN.md    Product/design notes and upgrade roadmap
   BALANCING.md      Economy tuning guide
+  ROADMAP.md        Production roadmap and remaining work
 ```
 
 ## How To Play
@@ -123,6 +125,10 @@ Some choice events can create a loan. Loans add cash immediately, then create da
 
 Runway is shown on the dashboard and estimates how many days current cash can cover today-like expenses. Net worth subtracts outstanding loan balance so debt cannot inflate the business value.
 
+### Daily missions
+
+Each day generates two small missions based on level, such as hitting revenue, units sold, net profit, or avoiding quality losses. Missions are evaluated when the day ends and rewards are paid automatically.
+
 ### Save system
 
 The app saves locally through AsyncStorage. Saves include:
@@ -133,6 +139,7 @@ The app saves locally through AsyncStorage. Saves include:
 - Achievements
 - Reports and lifetime totals
 - Clearance revenue and discount loss
+- Active daily missions and completed mission ids
 - Active loans and repayment terms
 - Settings and language
 - Save version metadata

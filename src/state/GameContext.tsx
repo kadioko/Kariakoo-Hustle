@@ -16,7 +16,7 @@ import {
   Language,
 } from '@/types';
 import { createInitialState, normalizeGameState } from '@/game/saveGame';
-import { clearGame, loadGame, saveGame } from '@/storage';
+import { clearGame, loadGameResult, saveGame } from '@/storage';
 import { findProduct } from '@/data/products';
 import { findLocation } from '@/data/locations';
 import { UPGRADES } from '@/data/upgrades';
@@ -37,7 +37,8 @@ import {
   simulateDay,
 } from '@/game/salesSimulation';
 import { applyEffect, rollEvent } from '@/game/randomEvents';
-import { applyXp, checkAchievements, xpFromDay } from '@/game/progression';
+import { applyXp, checkAchievements, xpForLevel, xpFromDay } from '@/game/progression';
+import { ensureDailyMissions, evaluateMissions, generateDailyMissions } from '@/game/missions';
 
 interface EndDayOutcome {
   report: DailyReport;
@@ -48,6 +49,7 @@ interface EndDayOutcome {
 interface GameContextType {
   state: GameState;
   isLoaded: boolean;
+  loadError?: 'corrupt_save' | 'read_failed';
   language: Language;
   inventoryCap: number;
   inventoryUsed: number;
@@ -67,6 +69,7 @@ interface GameContextType {
   setSound: (v: boolean) => void;
   setVibration: (v: boolean) => void;
   setBusinessName: (name: string) => void;
+  applyCheatCode: (code: string) => { ok: boolean; message: string; messageEn: string };
   resetGame: () => Promise<void>;
 }
 
@@ -75,15 +78,17 @@ const GameContext = createContext<GameContextType | null>(null);
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(() => createInitialState());
   const [isLoaded, setIsLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<GameContextType['loadError']>();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    loadGame().then((loaded) => {
+    loadGameResult().then((result) => {
       if (cancelled) return;
-      if (loaded) {
-        setState(normalizeGameState(loaded));
+      if (result.state) {
+        setState(normalizeGameState(result.state));
       }
+      setLoadError(result.error);
       setIsLoaded(true);
     });
     return () => {
@@ -102,6 +107,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [state, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    setState((s) => ensureDailyMissions(s));
+  }, [isLoaded, state.day]);
 
   const buyProduct = useCallback(
     (productId: string, qty: number) => {
@@ -204,7 +214,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       productSalesCount[p.productId] = (productSalesCount[p.productId] ?? 0) + p.sold;
     });
 
-    const report: DailyReport = {
+    let report: DailyReport = {
       day: working.day,
       revenue: outcome.revenue,
       cogs: outcome.cogs,
@@ -233,6 +243,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       adviceEn: advice.en,
     };
 
+    const missionEvaluation = evaluateMissions(working, report);
+    report = { ...report, missionResults: missionEvaluation.missionResults };
+
     let next: GameState = {
       ...working,
       cash: Math.max(0, working.cash + outcome.revenue - expenses.total + eventCash),
@@ -248,6 +261,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       hasMadeFirstSale: working.hasMadeFirstSale || outcome.unitsSold > 0,
       pendingEventId:
         pendingEvent && pendingEvent.type === 'choice' ? pendingEvent.id : undefined,
+    };
+
+    next = {
+      ...next,
+      cash: Math.max(0, next.cash + (missionEvaluation.state.cash - working.cash)),
+      xp: missionEvaluation.state.xp,
+      reputation: Math.max(-10, Math.min(100, next.reputation + (missionEvaluation.state.reputation - working.reputation))),
+      completedMissionIds: missionEvaluation.state.completedMissionIds,
     };
 
     next = settleDailyLoans(next);
@@ -273,6 +294,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     next = applyXp(next, xpFromDay(outcome.revenue, netProfit));
     const ach = checkAchievements(next);
     next = ach.state;
+    next = { ...next, missions: generateDailyMissions(next.day, next.level) };
 
     setState(next);
 
@@ -426,15 +448,54 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, businessName: name }));
   }, []);
 
+  const applyCheatCode = useCallback((rawCode: string) => {
+    const code = rawCode.trim().toUpperCase().replace(/\s+/g, '');
+    const success = (message: string, messageEn: string) => ({ ok: true, message, messageEn });
+
+    switch (code) {
+      case 'KARIOO50K':
+        setState((s) => ({ ...s, cash: s.cash + 50000 }));
+        return success('Cheat imeongeza 50,000 TZS.', 'Cheat added 50,000 TZS.');
+      case 'SIFANJEMA':
+        setState((s) => ({ ...s, reputation: Math.min(100, s.reputation + 10) }));
+        return success('Sifa imepanda kwa pointi 10.', 'Reputation increased by 10 points.');
+      case 'LEVELUP':
+        setState((s) => checkAchievements(applyXp(s, xpForLevel(s.level))).state);
+        return success('Level imepanda. Kariakoo inakutambua.', 'Level increased. Kariakoo knows your name.');
+      case 'MZIGOBOOST':
+        setState((s) => ({
+          ...s,
+          inventory: addInventory(
+            addInventory(addInventory(s.inventory, 'phone_case', 5, 3000), 'charger', 4, 6000),
+            'earphones',
+            4,
+            7000,
+          ),
+        }));
+        return success('Starter stock imeongezwa kwenye inventory.', 'Starter stock added to inventory.');
+      case 'FUTADENI':
+        setState((s) => ({ ...s, loans: [] }));
+        return success('Madeni yote yamefutwa.', 'All active loans have been cleared.');
+      default:
+        return {
+          ok: false,
+          message: 'Code haijatambulika. Hakikisha umeandika vizuri.',
+          messageEn: 'Unknown code. Check the spelling and try again.',
+        };
+    }
+  }, []);
+
   const resetGame = useCallback(async () => {
     await clearGame();
     setState(createInitialState());
+    setLoadError(undefined);
   }, []);
 
   const value = useMemo<GameContextType>(
     () => ({
       state,
       isLoaded,
+      loadError,
       language: state.settings.language,
       inventoryCap: inventoryCapacity(state),
       inventoryUsed: inventoryUnits(state),
@@ -451,11 +512,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setSound,
       setVibration,
       setBusinessName,
+      applyCheatCode,
       resetGame,
     }),
     [
       state,
       isLoaded,
+      loadError,
       buyProduct,
       clearInventory,
       endDay,
@@ -469,6 +532,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setSound,
       setVibration,
       setBusinessName,
+      applyCheatCode,
       resetGame,
     ],
   );

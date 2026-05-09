@@ -3,6 +3,7 @@ node_modules/
 dist/
 npm-debug.*
 expo-server*.log
+expo-web*.log
 *.jks
 *.p8
 *.p12
@@ -12,3 +13,4 @@ expo-server*.log
 web-build/
 .DS_Store
 .env*
+docs/CHEAT_CODES_LOCAL.md

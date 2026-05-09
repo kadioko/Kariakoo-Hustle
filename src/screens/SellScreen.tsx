@@ -265,6 +265,32 @@ export const SellScreen: React.FC = () => {
               )}
             </Card>
 
+            {report.missionResults && report.missionResults.length > 0 && (
+              <Card>
+                <Text style={styles.sectionTitle}>
+                  {lang === 'sw' ? '🎯 Misheni za Leo' : "🎯 Today's Missions"}
+                </Text>
+                {report.missionResults.map((mission) => (
+                  <View key={mission.id} style={styles.missionResultRow}>
+                    <Text style={styles.missionResultStatus}>
+                      {mission.completed ? '✅' : '⬜'}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.missionResultTitle}>
+                        {lang === 'sw' ? mission.title : mission.titleEn}
+                      </Text>
+                      <Text style={styles.missionResultSub}>
+                        {Math.min(mission.progress, mission.target)} / {mission.target}
+                        {mission.completed
+                          ? ` · ${lang === 'sw' ? mission.rewardText : mission.rewardTextEn}`
+                          : ''}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </Card>
+            )}
+
             {/* Event effect */}
             {(report.eventTitle || eventResult) && (
               <Card alt style={{ borderLeftWidth: 4, borderLeftColor: colors.warning }}>
@@ -459,4 +485,13 @@ const styles = StyleSheet.create({
   reportQuickItem: { alignItems: 'center', flex: 1 },
   reportQuickVal: { color: '#fff', fontSize: font.lg, fontWeight: '900' },
   reportQuickLabel: { color: '#FFFFFFCC', fontSize: font.xs, marginTop: 2 },
+  missionResultRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'flex-start',
+    paddingVertical: spacing.xs,
+  },
+  missionResultStatus: { fontSize: 18 },
+  missionResultTitle: { fontSize: font.sm, fontWeight: '800', color: colors.text },
+  missionResultSub: { fontSize: font.xs, color: colors.textMuted, marginTop: 2 },
 });

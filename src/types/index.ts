@@ -156,6 +156,29 @@ export interface Achievement {
   reward?: { cash?: number; xp?: number; reputation?: number };
 }
 
+export type MissionMetric = 'revenue' | 'units_sold' | 'net_profit' | 'no_quality_loss';
+
+export interface Mission {
+  id: string;
+  day: number;
+  metric: MissionMetric;
+  title: string;
+  titleEn: string;
+  target: number;
+  reward: { cash?: number; xp?: number; reputation?: number };
+}
+
+export interface MissionResult {
+  id: string;
+  title: string;
+  titleEn: string;
+  completed: boolean;
+  progress: number;
+  target: number;
+  rewardText: string;
+  rewardTextEn: string;
+}
+
 export interface DailyReport {
   day: number;
   revenue: number;
@@ -181,6 +204,7 @@ export interface DailyReport {
   eventTitleEn?: string;
   eventEffectText?: string;
   eventEffectTextEn?: string;
+  missionResults?: MissionResult[];
   advice: string;
   adviceEn: string;
 }
@@ -215,6 +239,8 @@ export interface GameState {
   workers: WorkerKind[];
   locations: string[];
   loans: Loan[];
+  missions: Mission[];
+  completedMissionIds: string[];
   currentLocationId: string;
   achievements: string[];
   reports: DailyReport[];

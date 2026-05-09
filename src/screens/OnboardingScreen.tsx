@@ -41,7 +41,7 @@ const TIPS = [
   {
     emoji: '🏆',
     sw: 'Jenga empire kutoka meza moja hadi matawi mengi Tanzania nzima.',
-    en: 'Build your empire — from one table to branches across Tanzania.',
+    en: 'Build your empire from one table to branches across Tanzania.',
   },
 ];
 
@@ -55,12 +55,17 @@ const DEFAULT_NAMES = [
 
 export const OnboardingScreen: React.FC = () => {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { setBusinessName, language } = useGame();
+  const { setBusinessName, setLanguage, language, loadError } = useGame();
   const [name, setName] = useState('');
-  const [step, setStep] = useState<'name' | 'tips'>('name');
+  const [step, setStep] = useState<'language' | 'name' | 'tips'>('language');
   const [tipIdx, setTipIdx] = useState(0);
   const fade = useRef(new Animated.Value(1)).current;
   const lang = language;
+
+  const handleLanguageNext = (selected: 'sw' | 'en') => {
+    setLanguage(selected);
+    setStep('name');
+  };
 
   const handleNameNext = () => {
     const finalName = name.trim() || DEFAULT_NAMES[Math.floor(Math.random() * DEFAULT_NAMES.length)];
@@ -81,17 +86,59 @@ export const OnboardingScreen: React.FC = () => {
     }
   };
 
-  const tip = TIPS[tipIdx];
+  const warningText = loadError
+    ? lang === 'sw'
+      ? 'Save ya zamani haikuweza kusomwa. Tumeanza game mpya ili usikwame.'
+      : 'Your old save could not be loaded. A new game was started so you can keep playing.'
+    : '';
+
+  if (step === 'language') {
+    return (
+      <View style={styles.root}>
+        <Text style={styles.welcomeEmoji}>🛒</Text>
+        <Text style={styles.welcome}>Kariakoo Hustle</Text>
+        <Text style={styles.welcomeSub}>Chagua lugha ya kucheza / Choose your game language</Text>
+
+        {loadError ? <Text style={styles.warning}>{warningText}</Text> : null}
+
+        <View style={styles.languageStack}>
+          <TouchableOpacity
+            style={styles.languageCard}
+            activeOpacity={0.85}
+            onPress={() => handleLanguageNext('sw')}
+          >
+            <Text style={styles.languageFlag}>🇹🇿</Text>
+            <View style={styles.languageCopy}>
+              <Text style={styles.languageTitle}>Kiswahili</Text>
+              <Text style={styles.languageSub}>Cheza kwa lugha ya mtaani.</Text>
+            </View>
+            <Text style={styles.languageArrow}>→</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.languageCard}
+            activeOpacity={0.85}
+            onPress={() => handleLanguageNext('en')}
+          >
+            <Text style={styles.languageFlag}>🇬🇧</Text>
+            <View style={styles.languageCopy}>
+              <Text style={styles.languageTitle}>English</Text>
+              <Text style={styles.languageSub}>Play with clear English copy.</Text>
+            </View>
+            <Text style={styles.languageArrow}>→</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (step === 'tips') {
+    const tip = TIPS[tipIdx];
     return (
       <View style={styles.root}>
         <View style={styles.tipDots}>
           {TIPS.map((_, i) => (
-            <View
-              key={i}
-              style={[styles.dot, i === tipIdx && styles.dotActive]}
-            />
+            <View key={i} style={[styles.dot, i === tipIdx && styles.dotActive]} />
           ))}
         </View>
 
@@ -103,8 +150,12 @@ export const OnboardingScreen: React.FC = () => {
         <Button
           title={
             tipIdx < TIPS.length - 1
-              ? lang === 'sw' ? 'Inayofuata →' : 'Next →'
-              : lang === 'sw' ? '🚀 Anza Biashara!' : '🚀 Start Business!'
+              ? lang === 'sw'
+                ? 'Inayofuata →'
+                : 'Next →'
+              : lang === 'sw'
+                ? '🚀 Anza Biashara!'
+                : '🚀 Start Business!'
           }
           onPress={nextTip}
           size="lg"
@@ -134,6 +185,8 @@ export const OnboardingScreen: React.FC = () => {
             : "What's your business name?"}
         </Text>
 
+        {loadError ? <Text style={styles.warning}>{warningText}</Text> : null}
+
         <View style={styles.inputWrap}>
           <TextInput
             style={styles.input}
@@ -150,11 +203,7 @@ export const OnboardingScreen: React.FC = () => {
 
         <View style={styles.suggestions}>
           {DEFAULT_NAMES.slice(0, 3).map((n) => (
-            <TouchableOpacity
-              key={n}
-              style={styles.suggestion}
-              onPress={() => setName(n)}
-            >
+            <TouchableOpacity key={n} style={styles.suggestion} onPress={() => setName(n)}>
               <Text style={styles.suggestionText}>{n}</Text>
             </TouchableOpacity>
           ))}
@@ -182,8 +231,42 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   welcomeEmoji: { fontSize: 72 },
-  welcome: { color: '#fff', fontSize: font.display, fontWeight: '900' },
-  welcomeSub: { color: '#FFFFFFCC', fontSize: font.lg, textAlign: 'center' },
+  welcome: { color: '#fff', fontSize: font.display, fontWeight: '900', textAlign: 'center' },
+  welcomeSub: { color: '#FFFFFFCC', fontSize: font.lg, textAlign: 'center', lineHeight: 26 },
+  warning: {
+    width: '100%',
+    color: '#FFF7ED',
+    backgroundColor: '#B4530944',
+    borderColor: '#FDBA74',
+    borderWidth: 1,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    padding: spacing.md,
+    fontSize: font.sm,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  languageStack: {
+    width: '100%',
+    gap: spacing.md,
+  },
+  languageCard: {
+    minHeight: 88,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: '#FFFFFF22',
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF44',
+    padding: spacing.lg,
+  },
+  languageFlag: { fontSize: 34 },
+  languageCopy: { flex: 1, minWidth: 0 },
+  languageTitle: { color: '#fff', fontSize: font.lg, fontWeight: '900' },
+  languageSub: { color: '#FFFFFFCC', fontSize: font.sm, lineHeight: 20 },
+  languageArrow: { color: '#fff', fontSize: font.xl, fontWeight: '900' },
   inputWrap: {
     width: '100%',
     backgroundColor: '#FFFFFF22',
