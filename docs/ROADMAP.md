@@ -214,21 +214,27 @@ Goal: Prepare for a closed test or public beta.
 
 Goal: Prepare optional monetization without hurting trust.
 
-### Left To Work On
+### Completed Foundation
 
-- Add placeholder UI for rewarded ads but keep it disabled until the game is fun.
-- Define fair rewarded ad options:
+- Placeholder UI for rewarded ads exists but is disabled until the game is fun.
+- Fair rewarded ad options are defined:
   - Double a small daily bonus
   - Recover part of a bad event
   - Speed up selling animation
   - Get a small supplier tip
-- Add cosmetic shop themes:
+- Cosmetic shop themes are defined:
   - Kariakoo Classic
   - Modern Duka
   - Wholesale Boss
   - Zanzibar Branch
-- Add remove-ads option only if ads are implemented.
-- Avoid pay-to-win boosts that break business learning.
+- Remove Ads is intentionally not a purchase option because ads are not implemented.
+
+### Left To Work On
+
+- Validate with players that the core loop is fun before enabling any ad SDK.
+- Decide which rewarded ad options should ship first.
+- Add real cosmetic theme switching only after the base UI is stable.
+- Keep avoiding pay-to-win boosts that break business learning.
 
 ### Acceptance Criteria
 

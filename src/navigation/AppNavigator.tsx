@@ -18,6 +18,7 @@ import { LocationsScreen } from '@/screens/LocationsScreen';
 import { ReportScreen } from '@/screens/ReportScreen';
 import { AchievementsScreen } from '@/screens/AchievementsScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
+import { MonetizationScreen } from '@/screens/MonetizationScreen';
 import { useGame } from '@/state/GameContext';
 import { t } from '@/utils/i18n';
 import { colors } from '@/theme';
@@ -33,6 +34,7 @@ export type RootStackParamList = {
   Reports: undefined;
   Achievements: undefined;
   Settings: undefined;
+  Monetization: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -131,6 +133,7 @@ export function AppNavigator() {
         <Stack.Screen name="Reports" component={ReportScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="Achievements" component={AchievementsScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Monetization" component={MonetizationScreen} options={{ animation: 'slide_from_right' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

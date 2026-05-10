@@ -6,6 +6,7 @@ import { applyXp, xpForLevel } from '../src/game/progression';
 import { generateDailyMissions } from '../src/game/missions';
 import { findCashCheat, normalizeCheatCode } from '../src/game/cheats';
 import { buyUpgradeAction, hireWorkerAction, unlockLocationAction } from '../src/game/businessActions';
+import { ADS_ENABLED, COSMETIC_THEMES, REWARDED_AD_OPTIONS } from '../src/data/monetization';
 
 test('initial state matches first-session economy expectations', () => {
   const state = createInitialState();
@@ -121,4 +122,17 @@ test('location unlock switches current location and charges unlock cost', () => 
   assert.equal(outcome.state.locations.includes('kariakoo_small_shop'), true);
   assert.equal(outcome.state.currentLocationId, 'kariakoo_small_shop');
   assert.equal(outcome.state.cash, 200000);
+});
+
+test('monetization placeholders stay fair and disabled', () => {
+  assert.equal(ADS_ENABLED, false);
+  assert.deepEqual(
+    REWARDED_AD_OPTIONS.map((option) => option.id),
+    ['daily_bonus', 'bad_event_recovery', 'speed_selling', 'supplier_tip'],
+  );
+  assert.deepEqual(
+    COSMETIC_THEMES.map((theme) => theme.id),
+    ['kariakoo_classic', 'modern_duka', 'wholesale_boss', 'zanzibar_branch'],
+  );
+  assert.equal(REWARDED_AD_OPTIONS.some((option) => option.id.includes('remove_ads')), false);
 });

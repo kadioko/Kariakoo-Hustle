@@ -103,7 +103,8 @@ Ads can be added later, but the game should remain fair:
 - Rewarded ad to double a small daily bonus
 - Rewarded ad to soften a bad event once
 - Rewarded ad to speed up selling animation
-- Remove ads option
+- Rewarded ad to give a small supplier tip
 - Cosmetic shop themes
+- Remove ads option only if ads are implemented
 
-Do not add gambling, betting, cash-out, or real-money reward mechanics.
+Current placeholder themes are Kariakoo Classic, Modern Duka, Wholesale Boss, and Zanzibar Branch. These should stay cosmetic only. Do not add gambling, betting, cash-out, real-money reward mechanics, or paid boosts that replace learning cash flow.

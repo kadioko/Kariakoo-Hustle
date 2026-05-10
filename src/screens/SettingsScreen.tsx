@@ -27,6 +27,7 @@ import { Button } from '@/components/Button';
 import { StatRow } from '@/components/StatRow';
 import { Header } from '@/components/Header';
 import { ACHIEVEMENTS } from '@/data/achievements';
+import { ADS_ENABLED } from '@/data/monetization';
 import packageJson from '../../package.json';
 
 const SettingRow: React.FC<{
@@ -313,13 +314,25 @@ export const SettingsScreen: React.FC = () => {
 
         <Card alt style={{ borderColor: colors.accent + '44', borderWidth: 1.5 }}>
           <Text style={styles.cardTitle}>
-            📺 {lang === 'sw' ? 'Ads - Hivi Karibuni' : 'Ads - Coming Soon'}
+            🎁 {lang === 'sw' ? 'Rewards & Themes' : 'Rewards & Themes'}
           </Text>
           <Text style={styles.aboutText}>
             {lang === 'sw'
-              ? '• Tazama ad → faida mara mbili\n• Tazama ad → recover kutoka hasara\n• Remove Ads (itakuja)'
-              : '• Watch ad → double your day bonus\n• Watch ad → recover from a loss\n• Remove Ads (coming soon)'}
+              ? ADS_ENABLED
+                ? 'Rewarded ads zimewashwa. Remove Ads inaweza kuongezwa kwenye build yenye ads.'
+                : 'Rewarded ads zimefungwa hadi game iwe fun na balanced. Cosmetics ni placeholders tu.'
+              : ADS_ENABLED
+                ? 'Rewarded ads are enabled. Remove Ads can be added in an ads build.'
+                : 'Rewarded ads are disabled until the game is fun and balanced. Cosmetics are placeholders only.'}
           </Text>
+          <Button
+            title={lang === 'sw' ? 'Angalia Plan' : 'View Plan'}
+            onPress={() => nav.navigate('Monetization')}
+            variant="outline"
+            size="sm"
+            fullWidth
+            style={{ marginTop: spacing.md }}
+          />
         </Card>
 
         <Button

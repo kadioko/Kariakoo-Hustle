@@ -22,7 +22,7 @@ const MenuItem = ({
 }) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.75}>
     <Text style={styles.menuEmoji}>{emoji}</Text>
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, minWidth: 0 }}>
       <Text style={styles.menuLabel}>{label}</Text>
       {sub ? <Text style={styles.menuSub}>{sub}</Text> : null}
     </View>
@@ -58,8 +58,14 @@ export const MoreScreen: React.FC = () => {
         <MenuItem
           emoji="📍"
           label={t('locations', lang)}
-          sub={`${state.locations.length} ${lang === 'sw' ? 'yimefunguliwa' : 'unlocked'}`}
+          sub={`${state.locations.length} ${lang === 'sw' ? 'yamefunguliwa' : 'unlocked'}`}
           onPress={() => nav.navigate('Locations')}
+        />
+        <MenuItem
+          emoji="🎁"
+          label={lang === 'sw' ? 'Rewards & Themes' : 'Rewards & Themes'}
+          sub={lang === 'sw' ? 'Ads zimefungwa, cosmetics placeholder' : 'Ads disabled, cosmetics placeholder'}
+          onPress={() => nav.navigate('Monetization')}
         />
         <MenuItem
           emoji="📊"
@@ -70,7 +76,7 @@ export const MoreScreen: React.FC = () => {
         <MenuItem
           emoji="🏆"
           label={t('achievements', lang)}
-          sub={`${state.achievements.length}/${ACHIEVEMENTS.length} ${lang === 'sw' ? 'yimepatikana' : 'earned'}`}
+          sub={`${state.achievements.length}/${ACHIEVEMENTS.length} ${lang === 'sw' ? 'yamepatikana' : 'earned'}`}
           onPress={() => nav.navigate('Achievements')}
         />
         <MenuItem
@@ -114,6 +120,6 @@ const styles = StyleSheet.create({
   },
   menuEmoji: { fontSize: 28 },
   menuLabel: { fontSize: font.md, fontWeight: '700', color: colors.text },
-  menuSub: { fontSize: font.sm, color: colors.textMuted, marginTop: 2 },
+  menuSub: { fontSize: font.sm, color: colors.textMuted, marginTop: 2, lineHeight: 18 },
   chevron: { fontSize: 20, color: colors.textMuted },
 });
