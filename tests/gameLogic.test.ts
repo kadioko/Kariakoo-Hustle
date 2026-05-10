@@ -4,6 +4,7 @@ import { STARTING_CASH, addInventory, inventoryCapacity, inventoryUnits, netWort
 import { SAVE_VERSION, createInitialState, normalizeGameState } from '../src/game/saveGame';
 import { applyXp, xpForLevel } from '../src/game/progression';
 import { generateDailyMissions } from '../src/game/missions';
+import { findCashCheat, normalizeCheatCode } from '../src/game/cheats';
 
 test('initial state matches first-session economy expectations', () => {
   const state = createInitialState();
@@ -84,4 +85,11 @@ test('loan balances reduce net worth and settle over days', () => {
   const afterPayment = settleDailyLoans(state);
   assert.equal(afterPayment.loans[0]?.remainingBalance, 40000);
   assert.equal(afterPayment.loans[0]?.daysRemaining, 2);
+});
+
+test('cash cheat codes normalize and return expected test amounts', () => {
+  assert.equal(normalizeCheatCode(' kari oo 50k '), 'KARIOO50K');
+  assert.equal(findCashCheat('KARIOO50K')?.amount, 50000);
+  assert.equal(findCashCheat('karioo2m5')?.amount, 2500000);
+  assert.equal(findCashCheat('EMPIRE30M')?.amount, 30000000);
 });

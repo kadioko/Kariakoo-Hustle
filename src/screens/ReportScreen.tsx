@@ -32,7 +32,7 @@ const ReportItem: React.FC<{ r: DailyReport; lang: 'sw' | 'en' }> = ({ r, lang }
       {(r.qualityLoss ?? 0) > 0 && (
         <Text style={styles.reportQuality}>
           {lang === 'sw' ? 'Hasara ya quality' : 'Quality loss'}: {formatTZS(r.qualityLoss ?? 0)}
-          {(r.returnedUnits ?? 0) > 0 ? ` Â· ${r.returnedUnits} ${lang === 'sw' ? 'zimerudishwa' : 'returned'}` : ''}
+          {(r.returnedUnits ?? 0) > 0 ? ` · ${r.returnedUnits} ${lang === 'sw' ? 'zimerudishwa' : 'returned'}` : ''}
         </Text>
       )}
       {best && (
@@ -85,7 +85,6 @@ export const ReportScreen: React.FC = () => {
       <Button title={`← ${t('back', lang)}`} onPress={() => nav.goBack()} variant="ghost" size="sm" style={{ alignSelf: 'flex-start', marginLeft: spacing.lg }} />
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        {/* Lifetime stats */}
         <Card>
           <Text style={styles.sectionTitle}>{lang === 'sw' ? 'Takwimu Zote' : 'All-Time Stats'}</Text>
           <StatRow label={t('total_revenue', lang)} value={formatTZS(state.totalRevenue)} highlight />
@@ -127,7 +126,6 @@ export const ReportScreen: React.FC = () => {
           )}
         </Card>
 
-        {/* Day reports */}
         <Text style={styles.sectionLabel}>
           {lang === 'sw' ? 'Historia ya Siku' : 'Day History'}
         </Text>
@@ -151,9 +149,9 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderRadius: radius.lg,
   },
-  reportTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  reportDay: { fontSize: font.sm, fontWeight: '700', color: colors.text },
-  reportNet: { fontSize: font.lg, fontWeight: '900' },
+  reportTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, gap: spacing.sm },
+  reportDay: { flex: 1, fontSize: font.sm, fontWeight: '700', color: colors.text },
+  reportNet: { flexShrink: 1, fontSize: font.lg, fontWeight: '900', textAlign: 'right' },
   reportSub: { fontSize: font.xs, color: colors.textMuted, lineHeight: 18 },
   reportBest: { fontSize: font.xs, color: colors.primary, fontWeight: '700', marginTop: 4 },
   reportEvent: { fontSize: font.xs, color: colors.warning, marginTop: 2 },

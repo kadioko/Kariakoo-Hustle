@@ -39,6 +39,7 @@ import {
 import { applyEffect, rollEvent } from '@/game/randomEvents';
 import { applyXp, checkAchievements, xpForLevel, xpFromDay } from '@/game/progression';
 import { ensureDailyMissions, evaluateMissions, generateDailyMissions } from '@/game/missions';
+import { findCashCheat, normalizeCheatCode } from '@/game/cheats';
 
 interface EndDayOutcome {
   report: DailyReport;
@@ -449,13 +450,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const applyCheatCode = useCallback((rawCode: string) => {
-    const code = rawCode.trim().toUpperCase().replace(/\s+/g, '');
+    const code = normalizeCheatCode(rawCode);
     const success = (message: string, messageEn: string) => ({ ok: true, message, messageEn });
+    const cashCheat = findCashCheat(code);
+
+    if (cashCheat) {
+      setState((s) => ({ ...s, cash: s.cash + cashCheat.amount }));
+      return success(cashCheat.message, cashCheat.messageEn);
+    }
 
     switch (code) {
-      case 'KARIOO50K':
-        setState((s) => ({ ...s, cash: s.cash + 50000 }));
-        return success('Cheat imeongeza 50,000 TZS.', 'Cheat added 50,000 TZS.');
       case 'SIFANJEMA':
         setState((s) => ({ ...s, reputation: Math.min(100, s.reputation + 10) }));
         return success('Sifa imepanda kwa pointi 10.', 'Reputation increased by 10 points.');

@@ -44,6 +44,7 @@ Use this checklist before each Android demo or release candidate.
 - Share business text and confirm the generated message includes net worth.
 - Confirm Settings shows `v<package.json version> · build <save version>`.
 - Tap the version/build line 7 times and confirm the secret menu opens.
+- Apply `KARIOO50K`, `KARIOO2M5`, and `EMPIRE30M` on separate reset runs and confirm cash/net worth changes correctly.
 
 ## Save, Load, And Migration
 
