@@ -9,7 +9,7 @@ export const WORKERS: Worker[] = [
     unlockLevel: 2,
     benefit: 'Mauzo ya kila siku +12%',
     benefitEn: 'Daily sales +12%',
-    emoji: '🧑‍🔧',
+    emoji: '🧑‍💼',
     effects: { salesBoostPercent: 0.12 },
   },
   {

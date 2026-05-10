@@ -5,6 +5,7 @@ import { SAVE_VERSION, createInitialState, normalizeGameState } from '../src/gam
 import { applyXp, xpForLevel } from '../src/game/progression';
 import { generateDailyMissions } from '../src/game/missions';
 import { findCashCheat, normalizeCheatCode } from '../src/game/cheats';
+import { buyUpgradeAction, hireWorkerAction, unlockLocationAction } from '../src/game/businessActions';
 
 test('initial state matches first-session economy expectations', () => {
   const state = createInitialState();
@@ -92,4 +93,32 @@ test('cash cheat codes normalize and return expected test amounts', () => {
   assert.equal(findCashCheat('KARIOO50K')?.amount, 50000);
   assert.equal(findCashCheat('karioo2m5')?.amount, 2500000);
   assert.equal(findCashCheat('EMPIRE30M')?.amount, 30000000);
+});
+
+test('upgrade purchase mutates cash and owned upgrades', () => {
+  const state = { ...createInitialState(), cash: 100000, level: 2 };
+  const outcome = buyUpgradeAction(state, 'bigger_table');
+
+  assert.equal(outcome.result.ok, true);
+  assert.equal(outcome.state.upgrades.includes('bigger_table'), true);
+  assert.equal(outcome.state.cash, 75000);
+});
+
+test('worker hiring respects level and then mutates cash and workers', () => {
+  const locked = hireWorkerAction({ ...createInitialState(), cash: 100000, level: 1 }, 'sales_assistant');
+  assert.deepEqual(locked.result, { ok: false, reason: 'not_unlocked' });
+
+  const hired = hireWorkerAction({ ...createInitialState(), cash: 100000, level: 2 }, 'sales_assistant');
+  assert.equal(hired.result.ok, true);
+  assert.equal(hired.state.workers.includes('sales_assistant'), true);
+  assert.equal(hired.state.cash, 94000);
+});
+
+test('location unlock switches current location and charges unlock cost', () => {
+  const outcome = unlockLocationAction({ ...createInitialState(), cash: 500000 }, 'kariakoo_small_shop');
+
+  assert.equal(outcome.result.ok, true);
+  assert.equal(outcome.state.locations.includes('kariakoo_small_shop'), true);
+  assert.equal(outcome.state.currentLocationId, 'kariakoo_small_shop');
+  assert.equal(outcome.state.cash, 200000);
 });

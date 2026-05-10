@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors, font, spacing } from '@/theme';
@@ -27,33 +27,22 @@ export const WorkersScreen: React.FC = () => {
   }, 0);
 
   const handleHire = (id: string, name: string, salary: number) => {
-    Alert.alert(
-      lang === 'sw' ? `Mshahara: ${formatTZS(salary)}/siku` : `Salary: ${formatTZS(salary)}/day`,
-      lang === 'sw' ? `Unataka kumwajiri ${name}?` : `Hire ${name}?`,
-      [
-        { text: t('cancel', lang), style: 'cancel' },
-        {
-          text: t('hire', lang),
-          onPress: () => {
-            const res = hireWorker(id);
-            if (res.ok) {
-              toast.success(
-                lang === 'sw' ? `${name} ameajiriwa!` : `${name} hired!`,
-                lang === 'sw' ? `Mshahara: ${formatTZS(salary)}/siku` : `Salary: ${formatTZS(salary)}/day`,
-              );
-            } else {
-              const msg =
-                res.reason === 'not_enough_cash'
-                  ? t('not_enough_cash', lang)
-                  : res.reason === 'already_hired'
-                  ? (lang === 'sw' ? 'Tayari ameajiriwa' : 'Already hired')
-                  : t('not_unlocked', lang);
-              toast.error(msg);
-            }
-          },
-        },
-      ],
-    );
+    const res = hireWorker(id);
+    if (res.ok) {
+      toast.success(
+        lang === 'sw' ? `${name} ameajiriwa!` : `${name} hired!`,
+        lang === 'sw' ? `Mshahara: ${formatTZS(salary)}/siku` : `Salary: ${formatTZS(salary)}/day`,
+      );
+      return;
+    }
+
+    const msg =
+      res.reason === 'not_enough_cash'
+        ? t('not_enough_cash', lang)
+        : res.reason === 'already_hired'
+          ? lang === 'sw' ? 'Tayari ameajiriwa' : 'Already hired'
+          : t('not_unlocked', lang);
+    toast.error(msg);
   };
 
   return (
@@ -73,7 +62,6 @@ export const WorkersScreen: React.FC = () => {
       />
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        {/* Combined boost summary */}
         <BoostSummary state={state} lang={lang} />
 
         {WORKERS.map((w) => {
@@ -87,8 +75,8 @@ export const WorkersScreen: React.FC = () => {
             <Card key={w.id} style={[hired && styles.hiredCard]}>
               <View style={styles.top}>
                 <Text style={styles.emoji}>{w.emoji}</Text>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={styles.titleRow}>
                     <Text style={styles.name}>{name}</Text>
                     {hired && (
                       <Pill label={`✓ ${lang === 'sw' ? 'Ameajiriwa' : 'Hired'}`} bg={colors.success} color="#fff" />
@@ -112,8 +100,8 @@ export const WorkersScreen: React.FC = () => {
                     locked
                       ? `🔒 ${t('unlock_level', lang)} ${w.unlockLevel}`
                       : !canAfford
-                      ? `${t('not_enough_cash', lang)}`
-                      : `✅ ${t('hire', lang)} — ${formatTZS(w.salary)}`
+                        ? `${t('not_enough_cash', lang)}`
+                        : `✅ ${t('hire', lang)} - ${formatTZS(w.salary)}`
                   }
                   disabled={locked || !canAfford}
                   onPress={() => handleHire(w.id, name, w.salary)}
@@ -134,8 +122,9 @@ export const WorkersScreen: React.FC = () => {
 const styles = StyleSheet.create({
   hiredCard: { borderColor: colors.success + '88', backgroundColor: '#F4FFF8', borderWidth: 1.5 },
   top: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start', marginBottom: spacing.sm },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   emoji: { fontSize: 36 },
-  name: { fontSize: font.md, fontWeight: '800', color: colors.text },
+  name: { flexShrink: 1, fontSize: font.md, fontWeight: '800', color: colors.text },
   benefit: { fontSize: font.sm, color: colors.primary, marginTop: 2, fontWeight: '600' },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.sm },
 });

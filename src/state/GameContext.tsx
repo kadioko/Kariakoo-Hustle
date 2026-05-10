@@ -18,9 +18,6 @@ import {
 import { createInitialState, normalizeGameState } from '@/game/saveGame';
 import { clearGame, loadGameResult, saveGame } from '@/storage';
 import { findProduct } from '@/data/products';
-import { findLocation } from '@/data/locations';
-import { UPGRADES } from '@/data/upgrades';
-import { WORKERS } from '@/data/workers';
 import { EVENTS } from '@/data/events';
 import {
   addInventory,
@@ -40,6 +37,7 @@ import { applyEffect, rollEvent } from '@/game/randomEvents';
 import { applyXp, checkAchievements, xpForLevel, xpFromDay } from '@/game/progression';
 import { ensureDailyMissions, evaluateMissions, generateDailyMissions } from '@/game/missions';
 import { findCashCheat, normalizeCheatCode } from '@/game/cheats';
+import { buyUpgradeAction, hireWorkerAction, unlockLocationAction } from '@/game/businessActions';
 
 interface EndDayOutcome {
   report: DailyReport;
@@ -364,64 +362,27 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const buyUpgrade = useCallback(
     (id: string) => {
-      const u = UPGRADES.find((x) => x.id === id);
-      if (!u) return { ok: false, reason: 'not_found' };
-      if (state.upgrades.includes(id)) return { ok: false, reason: 'already_owned' };
-      if (state.level < u.unlockLevel) return { ok: false, reason: 'not_unlocked' };
-      if (state.cash < u.cost) return { ok: false, reason: 'not_enough_cash' };
-      setState((s) => {
-        let next: GameState = {
-          ...s,
-          cash: s.cash - u.cost,
-          upgrades: [...s.upgrades, id],
-          reputation: Math.min(100, s.reputation + (u.effects.reputationBonus ?? 0)),
-        };
-        const ach = checkAchievements(next);
-        return ach.state;
-      });
-      return { ok: true };
+      const outcome = buyUpgradeAction(state, id);
+      if (outcome.result.ok) setState(outcome.state);
+      return outcome.result;
     },
     [state],
   );
 
   const hireWorker = useCallback(
     (id: string) => {
-      const w = WORKERS.find((x) => x.id === id);
-      if (!w) return { ok: false, reason: 'not_found' };
-      if (state.workers.includes(w.id)) return { ok: false, reason: 'already_hired' };
-      if (state.level < w.unlockLevel) return { ok: false, reason: 'not_unlocked' };
-      if (state.cash < w.salary) return { ok: false, reason: 'not_enough_cash' };
-      setState((s) => {
-        let next: GameState = {
-          ...s,
-          cash: s.cash - w.salary,
-          workers: [...s.workers, w.id],
-        };
-        const ach = checkAchievements(next);
-        return ach.state;
-      });
-      return { ok: true };
+      const outcome = hireWorkerAction(state, id);
+      if (outcome.result.ok) setState(outcome.state);
+      return outcome.result;
     },
     [state],
   );
 
   const unlockLocation = useCallback(
     (id: string) => {
-      const loc = findLocation(id);
-      if (!loc) return { ok: false, reason: 'not_found' };
-      if (state.locations.includes(id)) return { ok: false, reason: 'already_unlocked' };
-      if (state.cash < loc.unlockCost) return { ok: false, reason: 'not_enough_cash' };
-      setState((s) => {
-        let next: GameState = {
-          ...s,
-          cash: s.cash - loc.unlockCost,
-          locations: [...s.locations, id],
-          currentLocationId: id,
-        };
-        const ach = checkAchievements(next);
-        return ach.state;
-      });
-      return { ok: true };
+      const outcome = unlockLocationAction(state, id);
+      if (outcome.result.ok) setState(outcome.state);
+      return outcome.result;
     },
     [state],
   );

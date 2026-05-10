@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, font, spacing } from '@/theme';
 import { useGame } from '@/state/GameContext';
@@ -19,33 +19,20 @@ export const UpgradesScreen: React.FC = () => {
   const toast = useToast();
   const lang = language;
 
-  const handleBuy = (id: string, name: string, cost: number) => {
-    Alert.alert(
-      lang === 'sw' ? `Nunua ${name}?` : `Buy ${name}?`,
-      formatTZS(cost),
-      [
-        { text: t('cancel', lang), style: 'cancel' },
-        {
-          text: t('buy_upgrade', lang),
-          onPress: () => {
-            const res = buyUpgrade(id);
-            if (res.ok) {
-              toast.success(
-                lang === 'sw' ? `${name} imenunuliwa!` : `${name} purchased!`,
-              );
-            } else {
-              const msg =
-                res.reason === 'not_enough_cash'
-                  ? t('not_enough_cash', lang)
-                  : res.reason === 'already_owned'
-                  ? (lang === 'sw' ? 'Tayari umeshanunua' : 'Already owned')
-                  : t('not_unlocked', lang);
-              toast.error(msg);
-            }
-          },
-        },
-      ],
-    );
+  const handleBuy = (id: string, name: string) => {
+    const res = buyUpgrade(id);
+    if (res.ok) {
+      toast.success(lang === 'sw' ? `${name} imenunuliwa!` : `${name} purchased!`);
+      return;
+    }
+
+    const msg =
+      res.reason === 'not_enough_cash'
+        ? t('not_enough_cash', lang)
+        : res.reason === 'already_owned'
+          ? lang === 'sw' ? 'Tayari umeshanunua' : 'Already owned'
+          : t('not_unlocked', lang);
+    toast.error(msg);
   };
 
   const owned = UPGRADES.filter((u) => state.upgrades.includes(u.id));
@@ -64,12 +51,10 @@ export const UpgradesScreen: React.FC = () => {
       <Card key={u.id} style={[isOwned && styles.ownedCard, isLocked && !isOwned && styles.lockedCard]}>
         <View style={styles.top}>
           <Text style={[styles.emoji, isLocked && !isOwned && { opacity: 0.4 }]}>{u.emoji}</Text>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={styles.titleRow}>
               <Text style={styles.name}>{name}</Text>
-              {isOwned && (
-                <Pill label="✓" bg={colors.success} color="#fff" />
-              )}
+              {isOwned && <Pill label="✓" bg={colors.success} color="#fff" />}
               {isLocked && !isOwned && (
                 <Pill label={`🔒 L${u.unlockLevel}`} bg="#EFEAD9" color={colors.textMuted} />
               )}
@@ -97,10 +82,10 @@ export const UpgradesScreen: React.FC = () => {
               isLocked
                 ? `🔒 ${t('unlock_level', lang)} ${u.unlockLevel}`
                 : !canAfford
-                ? `${t('not_enough_cash', lang)} · ${formatTZS(u.cost - state.cash)} ${lang === 'sw' ? 'zaidi' : 'more needed'}`
-                : `🛒 ${t('buy_upgrade', lang)}`
+                  ? `${t('not_enough_cash', lang)} · ${formatTZS(u.cost - state.cash)} ${lang === 'sw' ? 'zaidi' : 'more needed'}`
+                  : `🛒 ${t('buy_upgrade', lang)}`
             }
-            onPress={() => handleBuy(u.id, name, u.cost)}
+            onPress={() => handleBuy(u.id, name)}
             disabled={isLocked || !canAfford}
             variant={isLocked || !canAfford ? 'secondary' : 'primary'}
             size="sm"
@@ -116,14 +101,12 @@ export const UpgradesScreen: React.FC = () => {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       <Header
         title={`🛠️ ${t('upgrades', lang)}`}
-        subtitle={`${state.upgrades.length}/${UPGRADES.length} ${lang === 'sw' ? 'yemenunuliwa' : 'owned'}`}
+        subtitle={`${state.upgrades.length}/${UPGRADES.length} ${lang === 'sw' ? 'yamenunuliwa' : 'owned'}`}
       />
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        {/* Boost summary */}
         <BoostSummary state={state} lang={lang} />
 
-        {/* Available upgrades */}
         {available.length > 0 && (
           <>
             <Text style={styles.sectionLabel}>
@@ -133,7 +116,6 @@ export const UpgradesScreen: React.FC = () => {
           </>
         )}
 
-        {/* Owned */}
         {owned.length > 0 && (
           <>
             <Text style={styles.sectionLabel}>
@@ -143,7 +125,6 @@ export const UpgradesScreen: React.FC = () => {
           </>
         )}
 
-        {/* Locked */}
         {locked.length > 0 && (
           <>
             <Text style={styles.sectionLabel}>
@@ -168,8 +149,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   top: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start', marginBottom: spacing.sm },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   emoji: { fontSize: 36 },
-  name: { fontSize: font.md, fontWeight: '800', color: colors.text },
+  name: { flexShrink: 1, fontSize: font.md, fontWeight: '800', color: colors.text },
   desc: { fontSize: font.sm, color: colors.textMuted, marginTop: 2, lineHeight: 18 },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.sm },
 });
