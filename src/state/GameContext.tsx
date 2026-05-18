@@ -38,17 +38,22 @@ import { applyXp, checkAchievements, xpForLevel, xpFromDay } from '@/game/progre
 import { ensureDailyMissions, evaluateMissions, generateDailyMissions } from '@/game/missions';
 import { findCashCheat, normalizeCheatCode } from '@/game/cheats';
 import { buyUpgradeAction, hireWorkerAction, unlockLocationAction } from '@/game/businessActions';
+import { ensureWeeklyGoals, evaluateWeeklyGoals } from '@/game/weeklyGoals';
+import { buildReportInsights } from '@/game/reportInsights';
 
 interface EndDayOutcome {
   report: DailyReport;
   pendingEvent?: GameEvent;
   newlyUnlockedAchievements: string[];
+  completedWeeklyGoals: { id: string; title: string; titleEn: string; rewardText: string; rewardTextEn: string }[];
 }
 
 interface GameContextType {
   state: GameState;
   isLoaded: boolean;
   loadError?: 'corrupt_save' | 'read_failed';
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  lastSavedAt?: string;
   language: Language;
   inventoryCap: number;
   inventoryUsed: number;
@@ -68,6 +73,7 @@ interface GameContextType {
   setSound: (v: boolean) => void;
   setVibration: (v: boolean) => void;
   setBusinessName: (name: string) => void;
+  markReportViewed: () => void;
   applyCheatCode: (code: string) => { ok: boolean; message: string; messageEn: string };
   resetGame: () => Promise<void>;
 }
@@ -78,6 +84,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(() => createInitialState());
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError, setLoadError] = useState<GameContextType['loadError']>();
+  const [saveStatus, setSaveStatus] = useState<GameContextType['saveStatus']>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<string | undefined>();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -86,6 +94,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (cancelled) return;
       if (result.state) {
         setState(normalizeGameState(result.state));
+        setLastSavedAt(result.state.lastSavedAt);
       }
       setLoadError(result.error);
       setIsLoaded(true);
@@ -100,7 +109,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (!isLoaded) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      saveGame(state);
+      setSaveStatus('saving');
+      saveGame(state).then((savedAt) => {
+        if (savedAt) {
+          setLastSavedAt(savedAt);
+          setSaveStatus('saved');
+        } else {
+          setSaveStatus('error');
+        }
+      });
     }, 400);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -109,7 +126,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoaded) return;
-    setState((s) => ensureDailyMissions(s));
+    setState((s) => ensureWeeklyGoals(ensureDailyMissions(s)));
   }, [isLoaded, state.day]);
 
   const buyProduct = useCallback(
@@ -234,6 +251,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       reputationChange: repChange,
       bestSellerId: outcome.bestSellerId,
       worstSellerId: outcome.worstSellerId,
+      salesBreakdown: outcome.perProduct,
+      ...buildReportInsights(working, {
+        day: working.day,
+        revenue: outcome.revenue,
+        cogs: outcome.cogs,
+        grossProfit,
+        expenses: expenses.total,
+        netProfit,
+        unitsSold: outcome.unitsSold,
+        returnedUnits: outcome.returnedUnits,
+        qualityLoss: outcome.qualityLoss,
+        unitsRemaining: outcome.unitsRemaining,
+        reputationChange: repChange,
+        bestSellerId: outcome.bestSellerId,
+        worstSellerId: outcome.worstSellerId,
+        advice: advice.sw,
+        adviceEn: advice.en,
+      }),
       eventTitle: eventTitle,
       eventTitleEn: eventTitleEn,
       eventEffectText: eventEffectText,
@@ -290,10 +325,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
+    const weeklyEvaluation = evaluateWeeklyGoals(next);
+    next = weeklyEvaluation.state;
+
     next = applyXp(next, xpFromDay(outcome.revenue, netProfit));
     const ach = checkAchievements(next);
     next = ach.state;
-    next = { ...next, missions: generateDailyMissions(next.day, next.level) };
+    next = ensureWeeklyGoals({ ...next, missions: generateDailyMissions(next.day, next.level) });
 
     setState(next);
 
@@ -301,6 +339,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       report,
       pendingEvent: pendingEvent && pendingEvent.type === 'choice' ? pendingEvent : undefined,
       newlyUnlockedAchievements: ach.newlyUnlocked,
+      completedWeeklyGoals: weeklyEvaluation.completed,
     };
   }, [state]);
 
@@ -410,6 +449,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, businessName: name }));
   }, []);
 
+  const markReportViewed = useCallback(() => {
+    setState((s) => (
+      s.tutorial.reportViewed
+        ? s
+        : { ...s, tutorial: { ...s.tutorial, reportViewed: true } }
+    ));
+  }, []);
+
   const applyCheatCode = useCallback((rawCode: string) => {
     const code = normalizeCheatCode(rawCode);
     const success = (message: string, messageEn: string) => ({ ok: true, message, messageEn });
@@ -461,6 +508,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       state,
       isLoaded,
       loadError,
+      saveStatus,
+      lastSavedAt,
       language: state.settings.language,
       inventoryCap: inventoryCapacity(state),
       inventoryUsed: inventoryUnits(state),
@@ -477,6 +526,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setSound,
       setVibration,
       setBusinessName,
+      markReportViewed,
       applyCheatCode,
       resetGame,
     }),
@@ -484,6 +534,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       state,
       isLoaded,
       loadError,
+      saveStatus,
+      lastSavedAt,
       buyProduct,
       clearInventory,
       endDay,
@@ -497,6 +549,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setSound,
       setVibration,
       setBusinessName,
+      markReportViewed,
       applyCheatCode,
       resetGame,
     ],

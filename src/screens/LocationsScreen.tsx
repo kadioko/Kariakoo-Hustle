@@ -53,6 +53,8 @@ export const LocationsScreen: React.FC = () => {
           const canAfford = state.cash >= loc.unlockCost;
           const name = lang === 'en' ? loc.nameEn : loc.name;
           const desc = lang === 'en' ? loc.descriptionEn : loc.description;
+          const flavor = lang === 'en' ? loc.flavorEn : loc.flavor;
+          const boosts = Object.entries(loc.categoryBoosts ?? {});
 
           return (
             <Card key={loc.id} style={[isCurrent && styles.currentCard]}>
@@ -65,6 +67,7 @@ export const LocationsScreen: React.FC = () => {
                     {owned && !isCurrent && <Pill label={t('unlocked', lang)} bg={colors.success + '22'} color={colors.success} />}
                   </View>
                   <Text style={styles.desc}>{desc}</Text>
+                  <Text style={styles.flavor}>{flavor}</Text>
                 </View>
               </View>
 
@@ -77,6 +80,12 @@ export const LocationsScreen: React.FC = () => {
                 label={t('risk', lang)}
                 value={t(`risk_${loc.risk}`, lang)}
               />
+              {boosts.length > 0 && (
+                <Text style={styles.boostText}>
+                  {lang === 'sw' ? 'Boost' : 'Boost'}:{' '}
+                  {boosts.map(([category, boost]) => `${t(`category_${category}`, lang)} +${Math.round(Number(boost) * 100)}%`).join(' · ')}
+                </Text>
+              )}
 
               {!owned && (
                 <Button
@@ -119,5 +128,7 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 36 },
   name: { flexShrink: 1, fontSize: font.md, fontWeight: '800', color: colors.text },
   desc: { fontSize: font.sm, color: colors.textMuted, marginTop: 2, lineHeight: 18 },
+  flavor: { fontSize: font.xs, color: colors.primary, marginTop: 5, lineHeight: 17, fontWeight: '700' },
+  boostText: { color: colors.textMuted, fontSize: font.xs, lineHeight: 18, marginTop: spacing.sm },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.sm },
 });

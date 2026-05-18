@@ -7,6 +7,10 @@ import { generateDailyMissions } from '../src/game/missions';
 import { findCashCheat, normalizeCheatCode } from '../src/game/cheats';
 import { buyUpgradeAction, hireWorkerAction, unlockLocationAction } from '../src/game/businessActions';
 import { ADS_ENABLED, COSMETIC_THEMES, REWARDED_AD_OPTIONS } from '../src/data/monetization';
+import { tutorialProgressPercent, tutorialSteps } from '../src/game/tutorial';
+import { businessAdvisorWarnings } from '../src/game/advisor';
+import { generateWeeklyGoals, weeklyGoalProgress } from '../src/game/weeklyGoals';
+import { LOCATIONS } from '../src/data/locations';
 
 test('initial state matches first-session economy expectations', () => {
   const state = createInitialState();
@@ -135,4 +139,104 @@ test('monetization placeholders stay fair and disabled', () => {
     ['kariakoo_classic', 'modern_duka', 'wholesale_boss', 'zanzibar_branch'],
   );
   assert.equal(REWARDED_AD_OPTIONS.some((option) => option.id.includes('remove_ads')), false);
+});
+
+test('tutorial chain guides the first ten minutes through five core steps', () => {
+  const fresh = createInitialState();
+  const steps = tutorialSteps(fresh);
+
+  assert.deepEqual(steps.map((step) => step.id), [
+    'buy_stock',
+    'sell_day',
+    'read_report',
+    'buy_upgrade',
+    'reach_100k',
+  ]);
+  assert.equal(tutorialProgressPercent(fresh), 0);
+
+  const progressed = {
+    ...fresh,
+    cash: 100000,
+    inventory: [{ productId: 'phone_case', quantity: 2, unitCost: 3000 }],
+    reports: [{
+      day: 1,
+      revenue: 10000,
+      cogs: 6000,
+      grossProfit: 4000,
+      expenses: 1500,
+      netProfit: 2500,
+      unitsSold: 2,
+      unitsRemaining: 0,
+      reputationChange: 1,
+      advice: '',
+      adviceEn: '',
+    }],
+    upgrades: ['bigger_table'],
+    tutorial: { reportViewed: true },
+  };
+
+  assert.equal(tutorialProgressPercent(progressed), 100);
+});
+
+test('business advisor warns about low cash and risky stock', () => {
+  const state = {
+    ...createInitialState(),
+    cash: 3000,
+    inventory: [{ productId: 'smart_watch', quantity: 10, unitCost: 25000 }],
+  };
+  const warnings = businessAdvisorWarnings(state).map((warning) => warning.id);
+
+  assert.ok(warnings.includes('low_cash'));
+  assert.ok(warnings.includes('risky_stock'));
+});
+
+test('weekly goals track revenue units positive days and upgrades', () => {
+  const goals = generateWeeklyGoals(1, 1, 0);
+  const state = {
+    ...createInitialState(),
+    weeklyGoals: goals,
+    upgrades: ['bigger_table'],
+    reports: [
+      {
+        day: 2,
+        revenue: 240000,
+        cogs: 100000,
+        grossProfit: 140000,
+        expenses: 20000,
+        netProfit: 120000,
+        unitsSold: 30,
+        unitsRemaining: 5,
+        reputationChange: 1,
+        advice: '',
+        adviceEn: '',
+      },
+      {
+        day: 1,
+        revenue: 260000,
+        cogs: 120000,
+        grossProfit: 140000,
+        expenses: 25000,
+        netProfit: 115000,
+        unitsSold: 25,
+        unitsRemaining: 2,
+        reputationChange: 1,
+        advice: '',
+        adviceEn: '',
+      },
+    ],
+  };
+
+  assert.equal(weeklyGoalProgress(state, goals.find((goal) => goal.metric === 'revenue')!), 500000);
+  assert.equal(weeklyGoalProgress(state, goals.find((goal) => goal.metric === 'units_sold')!), 55);
+  assert.equal(weeklyGoalProgress(state, goals.find((goal) => goal.metric === 'positive_days')!), 2);
+  assert.equal(weeklyGoalProgress(state, goals.find((goal) => goal.metric === 'upgrade_count')!), 1);
+});
+
+test('locations include strategic category flavor boosts', () => {
+  const zanzibar = LOCATIONS.find((location) => location.id === 'zanzibar_branch');
+  const mwenge = LOCATIONS.find((location) => location.id === 'mwenge_stand');
+
+  assert.equal(zanzibar?.categoryBoosts?.imported, 0.12);
+  assert.equal(mwenge?.categoryBoosts?.school, 0.08);
+  assert.ok(zanzibar?.flavorEn.includes('Tourist'));
 });

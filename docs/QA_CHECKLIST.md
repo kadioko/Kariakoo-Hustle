@@ -53,7 +53,7 @@ Use this checklist before each Android demo or release candidate.
 
 - Close and reopen the app after buying stock; cash and inventory should persist.
 - Close and reopen after ending a day; day, reports, missions, and achievements should persist.
-- Test saves from versions 1, 2, 3, 4, and 5 with `normalizeGameState`.
+- Test saves from versions 1, 2, 3, 4, 5, and 6 with `normalizeGameState`.
 - Corrupt the stored save payload during development and confirm the app shows a visible fallback warning instead of a blank screen.
 - Reset progress and confirm a clean new game starts.
 

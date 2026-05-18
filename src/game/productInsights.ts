@@ -46,7 +46,7 @@ export function getProductInsight(product: Product, language: Language): Product
       margin,
       marginPercent,
       tone: 'great',
-      label: language === 'sw' ? 'Moto sana' : 'Hot pick',
+      label: language === 'sw' ? 'Moto Leo' : 'Hot Today',
       description:
         language === 'sw'
           ? 'Demand iko juu na faida inaeleweka. Huu ni mzigo mzuri wa kuzungusha mapema.'
@@ -60,7 +60,7 @@ export function getProductInsight(product: Product, language: Language): Product
       margin,
       marginPercent,
       tone: 'good',
-      label: language === 'sw' ? 'Mzigo mzuri' : 'Solid pick',
+      label: language === 'sw' ? 'Mzigo Mzuri' : 'Solid Pick',
       description:
         language === 'sw'
           ? 'Inaweza kuleta faida nzuri, hasa ukiinunua kwa kiasi kinacholingana na cash flow.'
@@ -74,7 +74,7 @@ export function getProductInsight(product: Product, language: Language): Product
       margin,
       marginPercent,
       tone: 'careful',
-      label: language === 'sw' ? 'Nunua kwa kiasi' : 'Buy carefully',
+      label: language === 'sw' ? 'Slow Moving' : 'Slow Moving',
       description:
         language === 'sw'
           ? 'Faida ipo, lakini usijaze stock yote hapa. Jaribu kidogo kwanza.'
@@ -87,7 +87,7 @@ export function getProductInsight(product: Product, language: Language): Product
     margin,
     marginPercent,
     tone: 'risky',
-    label: language === 'sw' ? 'Risk kubwa' : 'High risk',
+    label: language === 'sw' ? 'Risky Stock' : 'Risky Stock',
     description:
       language === 'sw'
         ? 'Hii inaweza kukaa muda mrefu au kula cash. Inafaa zaidi ukiwa na akiba.'

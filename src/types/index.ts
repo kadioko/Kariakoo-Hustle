@@ -112,6 +112,8 @@ export interface Worker {
   unlockLevel: number;
   benefit: string;
   benefitEn: string;
+  personality: string;
+  personalityEn: string;
   emoji: string;
   effects: {
     salesBoostPercent?: number;
@@ -134,6 +136,9 @@ export interface Location {
   description: string;
   descriptionEn: string;
   emoji: string;
+  flavor: string;
+  flavorEn: string;
+  categoryBoosts?: Partial<Record<ProductCategory, number>>;
 }
 
 export type AchievementCondition =
@@ -200,6 +205,16 @@ export interface DailyReport {
   reputationChange: number;
   bestSellerId?: string;
   worstSellerId?: string;
+  salesBreakdown?: { productId: string; sold: number; revenue: number }[];
+  whatWentWell?: string;
+  whatWentWellEn?: string;
+  whatHurt?: string;
+  whatHurtEn?: string;
+  adviceTomorrow?: string;
+  adviceTomorrowEn?: string;
+  trendProfit?: number;
+  workerNote?: string;
+  workerNoteEn?: string;
   eventTitle?: string;
   eventTitleEn?: string;
   eventEffectText?: string;
@@ -213,6 +228,24 @@ export interface Settings {
   language: Language;
   sound: boolean;
   vibration: boolean;
+}
+
+export type WeeklyGoalMetric = 'revenue' | 'units_sold' | 'positive_days' | 'upgrade_count';
+
+export interface WeeklyGoal {
+  id: string;
+  startDay: number;
+  endDay: number;
+  metric: WeeklyGoalMetric;
+  title: string;
+  titleEn: string;
+  target: number;
+  baseline?: number;
+  reward: { cash?: number; xp?: number; reputation?: number };
+}
+
+export interface TutorialProgress {
+  reportViewed: boolean;
 }
 
 export interface Loan {
@@ -241,6 +274,9 @@ export interface GameState {
   loans: Loan[];
   missions: Mission[];
   completedMissionIds: string[];
+  weeklyGoals: WeeklyGoal[];
+  completedWeeklyGoalIds: string[];
+  tutorial: TutorialProgress;
   currentLocationId: string;
   achievements: string[];
   reports: DailyReport[];

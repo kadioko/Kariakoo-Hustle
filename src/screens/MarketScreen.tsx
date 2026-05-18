@@ -82,6 +82,8 @@ const BuyModal: React.FC<BuyModalProps> = ({
   const insight = getProductInsight(product, lang);
   const maxBuyable = Math.min(freeSlots, Math.floor(cash / product.buyPrice));
   const hasBuyingPower = maxBuyable > 0;
+  const cashTieUpPercent = cash > 0 ? total / cash : 1;
+  const tiesUpCash = cashTieUpPercent >= 0.45;
 
   const adjust = (delta: number) => {
     if (!hasBuyingPower) return;
@@ -121,6 +123,11 @@ const BuyModal: React.FC<BuyModalProps> = ({
             <StatRow
               label={t('margin', lang)}
               value={`+${formatTZS(margin)}  (+${marginPercent}%)`}
+              positive
+            />
+            <StatRow
+              label={lang === 'sw' ? 'Faida/unit' : 'Profit/unit'}
+              value={`+${formatTZS(margin)}`}
               positive
             />
             <View style={styles.pillRow}>
@@ -211,6 +218,13 @@ const BuyModal: React.FC<BuyModalProps> = ({
             {canAfford && freeSlots === 0 && (
               <Text style={{ color: colors.danger, fontSize: font.xs, marginTop: 4 }}>
                 ❌ {t('capacity_full', lang)}
+              </Text>
+            )}
+            {canAfford && canFit && tiesUpCash && (
+              <Text style={{ color: colors.warning, fontSize: font.xs, marginTop: 4, lineHeight: 18 }}>
+                ⚠️ {lang === 'sw'
+                  ? 'Huu mzigo unafunga cash nyingi. Acha akiba ya rent na transport.'
+                  : 'This batch ties up a lot of cash. Keep a cushion for rent and transport.'}
               </Text>
             )}
           </Card>

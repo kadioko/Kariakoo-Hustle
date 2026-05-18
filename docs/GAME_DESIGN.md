@@ -29,6 +29,10 @@ Kariakoo Hustle: Biashara Empire should feel like a local Tanzanian hustle story
 - Product risk now creates returned/faulty units, quality losses, and reputation pressure.
 - Inventory clearance lets players recover cash from slow stock at a visible discount.
 - Daily missions create short-term goals and automatic rewards after each completed day.
+- First-session tutorial steps guide players through stock, selling, reports, upgrades, and the first cash milestone.
+- Weekly goals add longer-term targets without introducing pay-to-win pressure.
+- Business advisor warnings explain cash runway, rent pressure, risky stock, slow stock, and loss recovery.
+- Reports now include day analysis: what went well, what hurt profit, worker notes, and advice for tomorrow.
 
 ## Next Good Upgrades
 

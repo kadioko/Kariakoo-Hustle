@@ -30,16 +30,18 @@ export async function loadGame(): Promise<GameState | null> {
   return result.state;
 }
 
-export async function saveGame(state: GameState): Promise<void> {
+export async function saveGame(state: GameState): Promise<string | null> {
   try {
+    const savedAt = new Date().toISOString();
     const stampedState: GameState = {
       ...state,
       saveVersion: SAVE_VERSION,
-      lastSavedAt: new Date().toISOString(),
+      lastSavedAt: savedAt,
     };
     await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(stampedState));
+    return savedAt;
   } catch (e) {
-    // ignore
+    return null;
   }
 }
 

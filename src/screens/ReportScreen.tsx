@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -70,7 +70,7 @@ const ReportItem: React.FC<{ r: DailyReport; lang: 'sw' | 'en' }> = ({ r, lang }
 
 export const ReportScreen: React.FC = () => {
   const nav = useNavigation<any>();
-  const { state, language } = useGame();
+  const { state, language, markReportViewed } = useGame();
   const lang = language;
 
   const nw = netWorth(state);
@@ -78,6 +78,10 @@ export const ReportScreen: React.FC = () => {
   const sortedProducts = Object.entries(state.productSalesCount).sort((a, b) => b[1] - a[1]);
   const bestAllTime = sortedProducts[0] ? findProduct(sortedProducts[0][0]) : null;
   const loanBalance = state.loans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
+
+  useEffect(() => {
+    markReportViewed();
+  }, [markReportViewed]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -135,7 +139,36 @@ export const ReportScreen: React.FC = () => {
             <Text style={styles.emptyText}>{t('no_reports', lang)}</Text>
           </View>
         ) : (
-          state.reports.map((r) => <ReportItem key={r.day} r={r} lang={lang} />)
+          state.reports.map((r) => (
+            <View key={r.day} style={{ gap: spacing.sm }}>
+              <ReportItem r={r} lang={lang} />
+              {(r.whatWentWell || r.whatHurt || r.adviceTomorrow) && (
+                <Card alt>
+                  <Text style={styles.sectionTitle}>{lang === 'sw' ? 'Uchambuzi wa Siku' : 'Day Analysis'}</Text>
+                  {r.trendProfit !== undefined && (
+                    <StatRow
+                      label={lang === 'sw' ? 'Trend vs jana' : 'Trend vs yesterday'}
+                      value={`${r.trendProfit >= 0 ? '+' : ''}${formatTZS(r.trendProfit)}`}
+                      positive={r.trendProfit >= 0}
+                      negative={r.trendProfit < 0}
+                    />
+                  )}
+                  {r.whatWentWell && (
+                    <Text style={styles.analysisText}>✅ {lang === 'sw' ? r.whatWentWell : r.whatWentWellEn}</Text>
+                  )}
+                  {r.whatHurt && (
+                    <Text style={styles.analysisText}>⚠️ {lang === 'sw' ? r.whatHurt : r.whatHurtEn}</Text>
+                  )}
+                  {r.workerNote && (
+                    <Text style={styles.analysisText}>👥 {lang === 'sw' ? r.workerNote : r.workerNoteEn}</Text>
+                  )}
+                  {r.adviceTomorrow && (
+                    <Text style={styles.analysisText}>💡 {lang === 'sw' ? r.adviceTomorrow : r.adviceTomorrowEn}</Text>
+                  )}
+                </Card>
+              )}
+            </View>
+          ))
         )}
       </ScrollView>
     </SafeAreaView>
@@ -161,4 +194,5 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 48 },
   emptyEmoji: { fontSize: 48, marginBottom: spacing.md },
   emptyText: { color: colors.textMuted, fontSize: font.md, textAlign: 'center' },
+  analysisText: { color: colors.textMuted, fontSize: font.sm, lineHeight: 20, marginTop: 4 },
 });

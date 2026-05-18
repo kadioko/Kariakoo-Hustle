@@ -70,6 +70,7 @@ export const WorkersScreen: React.FC = () => {
           const canAfford = state.cash >= w.salary;
           const name = lang === 'en' ? w.nameEn : w.name;
           const benefit = lang === 'en' ? w.benefitEn : w.benefit;
+          const personality = lang === 'en' ? w.personalityEn : w.personality;
 
           return (
             <Card key={w.id} style={[hired && styles.hiredCard]}>
@@ -86,6 +87,7 @@ export const WorkersScreen: React.FC = () => {
                     )}
                   </View>
                   <Text style={styles.benefit}>{benefit}</Text>
+                  <Text style={styles.personality}>{personality}</Text>
                 </View>
               </View>
               <View style={styles.divider} />
@@ -126,5 +128,6 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 36 },
   name: { flexShrink: 1, fontSize: font.md, fontWeight: '800', color: colors.text },
   benefit: { fontSize: font.sm, color: colors.primary, marginTop: 2, fontWeight: '600' },
+  personality: { fontSize: font.xs, color: colors.textMuted, marginTop: 5, lineHeight: 17 },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.sm },
 });

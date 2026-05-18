@@ -114,6 +114,12 @@ export const SellScreen: React.FC = () => {
         );
       }
     });
+    outcome.completedWeeklyGoals.forEach((goal) => {
+      toast.success(
+        lang === 'sw' ? `Lengo la wiki: ${goal.title}` : `Weekly goal: ${goal.titleEn}`,
+        lang === 'sw' ? goal.rewardText : goal.rewardTextEn,
+      );
+    });
 
     if (outcome.pendingEvent) {
       setPendingEvent(outcome.pendingEvent);
@@ -211,6 +217,19 @@ export const SellScreen: React.FC = () => {
           </View>
 
           <View style={{ padding: spacing.lg, gap: spacing.md }}>
+            {report.unitsSold >= 10 && (
+              <Card alt style={{ borderLeftWidth: 4, borderLeftColor: colors.accent }}>
+                <Text style={styles.sectionTitle}>
+                  {lang === 'sw' ? '🎉 Wateja wamefurika!' : '🎉 Customers showed up!'}
+                </Text>
+                <Text style={{ color: colors.textMuted, fontSize: font.sm, lineHeight: 20 }}>
+                  {lang === 'sw'
+                    ? `Umeuza vipande ${report.unitsSold}. Hii ni siku nzuri ya kuzungusha mzigo.`
+                    : `You sold ${report.unitsSold} units. That is a strong stock-turning day.`}
+                </Text>
+              </Card>
+            )}
+
             {/* P&L breakdown */}
             <Card>
               <Text style={styles.sectionTitle}>
@@ -264,6 +283,57 @@ export const SellScreen: React.FC = () => {
                 />
               )}
             </Card>
+
+            {report.salesBreakdown && report.salesBreakdown.length > 0 && (
+              <Card>
+                <Text style={styles.sectionTitle}>
+                  {lang === 'sw' ? '🧾 Bidhaa zilizouzwa' : '🧾 Product-by-product sales'}
+                </Text>
+                {report.salesBreakdown.slice(0, 6).map((sale) => {
+                  const product = findProduct(sale.productId);
+                  if (!product) return null;
+                  return (
+                    <View key={sale.productId} style={styles.saleTickerRow}>
+                      <Text style={styles.saleTickerEmoji}>{product.emoji}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.saleTickerName}>{lang === 'sw' ? product.name : product.nameEn}</Text>
+                        <Text style={styles.saleTickerSub}>
+                          {sale.sold} {lang === 'sw' ? 'vipande' : 'units'} · {formatTZS(sale.revenue)}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </Card>
+            )}
+
+            {(report.whatWentWell || report.whatHurt || report.adviceTomorrow) && (
+              <Card alt>
+                <Text style={styles.sectionTitle}>
+                  {lang === 'sw' ? '🧠 Somo la Biashara' : '🧠 Business Lesson'}
+                </Text>
+                {report.trendProfit !== undefined && (
+                  <StatRow
+                    label={lang === 'sw' ? 'Trend vs jana' : 'Trend vs yesterday'}
+                    value={`${report.trendProfit >= 0 ? '+' : ''}${formatTZS(report.trendProfit)}`}
+                    positive={report.trendProfit >= 0}
+                    negative={report.trendProfit < 0}
+                  />
+                )}
+                {report.whatWentWell && (
+                  <Text style={styles.lessonText}>✅ {lang === 'sw' ? report.whatWentWell : report.whatWentWellEn}</Text>
+                )}
+                {report.whatHurt && (
+                  <Text style={styles.lessonText}>⚠️ {lang === 'sw' ? report.whatHurt : report.whatHurtEn}</Text>
+                )}
+                {report.workerNote && (
+                  <Text style={styles.lessonText}>👥 {lang === 'sw' ? report.workerNote : report.workerNoteEn}</Text>
+                )}
+                {report.adviceTomorrow && (
+                  <Text style={styles.lessonText}>💡 {lang === 'sw' ? report.adviceTomorrow : report.adviceTomorrowEn}</Text>
+                )}
+              </Card>
+            )}
 
             {report.missionResults && report.missionResults.length > 0 && (
               <Card>
@@ -494,4 +564,14 @@ const styles = StyleSheet.create({
   missionResultStatus: { fontSize: 18 },
   missionResultTitle: { fontSize: font.sm, fontWeight: '800', color: colors.text },
   missionResultSub: { fontSize: font.xs, color: colors.textMuted, marginTop: 2 },
+  saleTickerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  saleTickerEmoji: { fontSize: 22 },
+  saleTickerName: { color: colors.text, fontSize: font.sm, fontWeight: '800' },
+  saleTickerSub: { color: colors.textMuted, fontSize: font.xs, marginTop: 2 },
+  lessonText: { color: colors.textMuted, fontSize: font.sm, lineHeight: 20, marginTop: 5 },
 });

@@ -51,7 +51,7 @@ Goal: Make the current prototype stable, understandable, and testable on Android
 - Add basic automated unit tests for pure game logic.
 - Add app icon and splash assets that match the Kariakoo identity.
 - Clean up mojibake/encoding artifacts in older UI emoji strings if they render incorrectly on device.
-- Confirm AsyncStorage migration from save versions `1` through `5`.
+- Confirm AsyncStorage migration from save versions `1` through `6`.
 - Add a visible save/load failure fallback or warning for corrupted saves.
 - Add a "version/build" display in Settings tied to `package.json`.
 
@@ -69,15 +69,15 @@ Goal: Make every day feel like a choice, not just a button press.
 ### Left To Work On
 
 - Add mission streaks for completing daily missions multiple days in a row.
-- Add weekly goals, such as weekly revenue, profit, or branch expansion.
-- Add product category demand modifiers by location.
+- Expand weekly goals beyond revenue, unit sales, positive days, and upgrades.
+- Expand product category demand modifiers by location.
 - Add seasonal modifiers, such as school season, holiday season, rainy season, and tourist season.
 - Add stock aging so old inventory becomes harder to sell or needs clearance.
 - Add supplier quality tiers: cheap, standard, premium.
 - Add product batch quality so not every unit of a product has the same risk.
 - Add loan repayment summary and optional early repayment.
 - Add warnings before taking a loan if runway is already low.
-- Add a "business advice" panel that uses current state to recommend a practical next action.
+- Expand the business advice panel with more practical next-action recommendations.
 
 ### Acceptance Criteria
 

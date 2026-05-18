@@ -1,8 +1,9 @@
 import { GameState } from '@/types';
 import { generateDailyMissions } from './missions';
+import { generateWeeklyGoals } from './weeklyGoals';
 import { STARTING_CASH } from './economy';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export function createInitialState(): GameState {
   return {
@@ -19,6 +20,9 @@ export function createInitialState(): GameState {
     loans: [],
     missions: generateDailyMissions(1, 1),
     completedMissionIds: [],
+    weeklyGoals: generateWeeklyGoals(1, 1, 0),
+    completedWeeklyGoalIds: [],
+    tutorial: { reportViewed: false },
     locations: ['kariakoo_table'],
     currentLocationId: 'kariakoo_table',
     achievements: [],
@@ -59,6 +63,17 @@ export function normalizeGameState(raw: Partial<GameState> | null | undefined): 
     completedMissionIds: Array.isArray(raw.completedMissionIds)
       ? raw.completedMissionIds
       : initial.completedMissionIds,
+    weeklyGoals:
+      Array.isArray(raw.weeklyGoals) && raw.weeklyGoals.length > 0
+        ? raw.weeklyGoals
+        : generateWeeklyGoals(Math.floor(((raw.day ?? initial.day) - 1) / 7) * 7 + 1, raw.level ?? initial.level, Array.isArray(raw.upgrades) ? raw.upgrades.length : 0),
+    completedWeeklyGoalIds: Array.isArray(raw.completedWeeklyGoalIds)
+      ? raw.completedWeeklyGoalIds
+      : initial.completedWeeklyGoalIds,
+    tutorial: {
+      ...initial.tutorial,
+      ...(raw.tutorial ?? {}),
+    },
     locations:
       Array.isArray(raw.locations) && raw.locations.length > 0
         ? raw.locations

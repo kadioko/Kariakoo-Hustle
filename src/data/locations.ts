@@ -12,6 +12,9 @@ export const LOCATIONS: Location[] = [
     risk: 'low',
     description: 'Mahali pa kuanzia. Watu wengi, kodi ndogo.',
     descriptionEn: 'Where it all starts. Lots of foot traffic, low rent.',
+    flavor: 'Fast foot traffic. Vifaa vya simu na nguo ndogo zinaenda haraka.',
+    flavorEn: 'Fast foot traffic. Phone accessories and small clothes move quickly.',
+    categoryBoosts: { phone_accessories: 0.08, clothes: 0.04, imported: 0.03 },
     emoji: '🛒',
   },
   {
@@ -25,6 +28,9 @@ export const LOCATIONS: Location[] = [
     risk: 'medium',
     description: 'Duka dogo linakupa nafasi kubwa na wateja wengi zaidi.',
     descriptionEn: 'A small shop gives more space and more customers.',
+    flavor: 'Unaaminika zaidi. Imported goods na electronics zinaonekana premium.',
+    flavorEn: 'Customers trust you more. Imported goods and electronics feel premium.',
+    categoryBoosts: { imported: 0.08, electronics: 0.06, phone_accessories: 0.05 },
     emoji: '🏪',
   },
   {
@@ -38,6 +44,9 @@ export const LOCATIONS: Location[] = [
     risk: 'medium',
     description: 'Mwenge ni eneo zuri la wanafunzi na wafanyakazi.',
     descriptionEn: 'Mwenge attracts students and workers.',
+    flavor: 'Students and workers love food, school supplies, shoes, and quick basics.',
+    flavorEn: 'Students and workers love food, school supplies, shoes, and quick basics.',
+    categoryBoosts: { food: 0.1, school: 0.08, shoes: 0.05 },
     emoji: '🌳',
   },
   {
@@ -51,6 +60,9 @@ export const LOCATIONS: Location[] = [
     risk: 'medium',
     description: 'Karibu na vyuo na maofisi makubwa.',
     descriptionEn: 'Near universities and big offices.',
+    flavor: 'Electronics, cosmetics, and fashion get a campus-office boost.',
+    flavorEn: 'Electronics, cosmetics, and fashion get a campus-office boost.',
+    categoryBoosts: { electronics: 0.1, cosmetics: 0.08, clothes: 0.05 },
     emoji: '🏫',
   },
   {
@@ -64,6 +76,9 @@ export const LOCATIONS: Location[] = [
     risk: 'medium',
     description: 'Eneo la kati la familia, demand thabiti.',
     descriptionEn: 'Family neighborhood with steady demand.',
+    flavor: 'Home items, food, clothes, and cosmetics sell steadily.',
+    flavorEn: 'Home items, food, clothes, and cosmetics sell steadily.',
+    categoryBoosts: { home: 0.08, food: 0.06, cosmetics: 0.05, clothes: 0.04 },
     emoji: '🏘️',
   },
   {
@@ -77,6 +92,9 @@ export const LOCATIONS: Location[] = [
     risk: 'high',
     description: 'Eneo la wafanyakazi wa serikali na biashara kubwa.',
     descriptionEn: 'Government workers and big business hub.',
+    flavor: 'Office traffic boosts electronics, imported goods, and smart accessories.',
+    flavorEn: 'Office traffic boosts electronics, imported goods, and smart accessories.',
+    categoryBoosts: { electronics: 0.09, imported: 0.08, phone_accessories: 0.05 },
     emoji: '🏢',
   },
   {
@@ -90,6 +108,9 @@ export const LOCATIONS: Location[] = [
     risk: 'medium',
     description: 'Watalii na biashara nzuri ya wenyeji.',
     descriptionEn: 'Tourists plus great local trade.',
+    flavor: 'Tourists lift clothes, shoes, cosmetics, and imported goods.',
+    flavorEn: 'Tourists lift clothes, shoes, cosmetics, and imported goods.',
+    categoryBoosts: { clothes: 0.08, shoes: 0.08, cosmetics: 0.06, imported: 0.06 },
     emoji: '🏔️',
   },
   {
@@ -103,6 +124,9 @@ export const LOCATIONS: Location[] = [
     risk: 'medium',
     description: 'Mji wa biashara karibu na ziwa.',
     descriptionEn: 'Trading city by the lake.',
+    flavor: 'Home items, spare parts, and food move with steady lake-city trade.',
+    flavorEn: 'Home items, spare parts, and food move with steady lake-city trade.',
+    categoryBoosts: { home: 0.08, spare_parts: 0.08, food: 0.05 },
     emoji: '🌊',
   },
   {
@@ -116,6 +140,9 @@ export const LOCATIONS: Location[] = [
     risk: 'medium',
     description: 'Makao makuu, fursa za serikali.',
     descriptionEn: 'Capital city, government opportunities.',
+    flavor: 'Office demand helps electronics, school supplies, and smart basics.',
+    flavorEn: 'Office demand helps electronics, school supplies, and smart basics.',
+    categoryBoosts: { electronics: 0.08, school: 0.07, phone_accessories: 0.05 },
     emoji: '🏛️',
   },
   {
@@ -129,6 +156,9 @@ export const LOCATIONS: Location[] = [
     risk: 'high',
     description: 'Watalii kibao na biashara ya kifahari.',
     descriptionEn: 'Tons of tourists and premium trade.',
+    flavor: 'Tourist demand boosts imported goods, cosmetics, fashion, and home gifts.',
+    flavorEn: 'Tourist demand boosts imported goods, cosmetics, fashion, and home gifts.',
+    categoryBoosts: { imported: 0.12, cosmetics: 0.08, clothes: 0.07, home: 0.06 },
     emoji: '🏝️',
   },
 ];

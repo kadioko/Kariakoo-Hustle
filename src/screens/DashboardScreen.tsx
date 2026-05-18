@@ -28,6 +28,9 @@ import { StatRow } from '@/components/StatRow';
 import { Button } from '@/components/Button';
 import { Pill } from '@/components/Pill';
 import { RootStackParamList } from '@/navigation/AppNavigator';
+import { businessAdvisorWarnings } from '@/game/advisor';
+import { tutorialProgressPercent, tutorialSteps } from '@/game/tutorial';
+import { weeklyGoalProgress } from '@/game/weeklyGoals';
 
 // Animated cash number
 function AnimatedCash({ value }: { value: number }) {
@@ -101,7 +104,7 @@ const QuickButton = ({
 
 export const DashboardScreen: React.FC = () => {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { state, language } = useGame();
+  const { state, language, saveStatus, lastSavedAt } = useGame();
   const toast = useToast();
   const lang = language;
 
@@ -134,6 +137,17 @@ export const DashboardScreen: React.FC = () => {
     .filter((loc) => !state.locations.includes(loc.id))
     .sort((a, b) => a.unlockCost - b.unlockCost)[0];
   const todayMissions = state.missions.filter((mission) => mission.day === state.day);
+  const tutorial = tutorialSteps(state);
+  const tutorialPct = tutorialProgressPercent(state);
+  const advisorWarnings = businessAdvisorWarnings(state);
+  const activeWeeklyGoals = state.weeklyGoals.filter((goal) => state.day >= goal.startDay && state.day <= goal.endDay);
+  const savedLabel = saveStatus === 'saving'
+    ? (lang === 'sw' ? 'Inahifadhi...' : 'Saving...')
+    : saveStatus === 'error'
+      ? (lang === 'sw' ? 'Save imekwama' : 'Save failed')
+      : lastSavedAt
+        ? (lang === 'sw' ? 'Saved' : 'Saved')
+        : (lang === 'sw' ? 'Offline ready' : 'Offline ready');
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
@@ -172,6 +186,59 @@ export const DashboardScreen: React.FC = () => {
         </View>
 
         <View style={styles.body}>
+          <View style={[styles.savePill, saveStatus === 'error' && { borderColor: colors.danger }]}>
+            <Text style={[styles.saveText, saveStatus === 'error' && { color: colors.danger }]}>
+              {saveStatus === 'error' ? '⚠️' : '✓'} {savedLabel}
+            </Text>
+          </View>
+
+          {tutorialPct < 100 && (
+            <Card alt style={{ borderLeftWidth: 4, borderLeftColor: colors.accent }}>
+              <View style={styles.xpRow}>
+                <Text style={styles.sectionLabel}>
+                  {lang === 'sw' ? 'Dakika 10 za Mwanzo' : 'First 10 Minutes'}
+                </Text>
+                <Text style={styles.xpVal}>{tutorialPct}%</Text>
+              </View>
+              <ProgressBar value={tutorialPct} max={100} height={8} color={colors.accent} />
+              {tutorial.map((step) => (
+                <Pressable
+                  key={step.id}
+                  onPress={() => {
+                    if (!step.completed && step.route) nav.navigate(step.route as any);
+                  }}
+                  style={styles.tutorialRow}
+                >
+                  <Text style={styles.tutorialStatus}>{step.completed ? '✅' : '⬜'}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.tutorialTitle}>{lang === 'sw' ? step.title : step.titleEn}</Text>
+                    {!step.completed && (
+                      <Text style={styles.tutorialDesc}>{lang === 'sw' ? step.description : step.descriptionEn}</Text>
+                    )}
+                  </View>
+                  {!step.completed && step.route ? <Text style={styles.tutorialArrow}>›</Text> : null}
+                </Pressable>
+              ))}
+            </Card>
+          )}
+
+          {advisorWarnings.length > 0 && (
+            <Card>
+              <Text style={styles.sectionLabel}>
+                {lang === 'sw' ? 'Mshauri wa Biashara' : 'Business Advisor'}
+              </Text>
+              {advisorWarnings.map((warning) => (
+                <View key={warning.id} style={styles.advisorRow}>
+                  <Text style={styles.missionIcon}>{warning.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.missionTitle}>{lang === 'sw' ? warning.title : warning.titleEn}</Text>
+                    <Text style={styles.advisorBody}>{lang === 'sw' ? warning.body : warning.bodyEn}</Text>
+                  </View>
+                </View>
+              ))}
+            </Card>
+          )}
+
           {/* Pending event banner */}
           {pendingEvent && (
             <Pressable
@@ -224,6 +291,30 @@ export const DashboardScreen: React.FC = () => {
                   </View>
                 </View>
               ))}
+            </Card>
+          )}
+
+          {activeWeeklyGoals.length > 0 && (
+            <Card>
+              <Text style={styles.sectionLabel}>
+                {lang === 'sw' ? 'Malengo ya Wiki' : 'Weekly Goals'}
+              </Text>
+              {activeWeeklyGoals.map((goal) => {
+                const progress = weeklyGoalProgress(state, goal);
+                const complete = state.completedWeeklyGoalIds.includes(goal.id);
+                const progressText = goal.metric === 'revenue'
+                  ? `${formatTZS(Math.min(progress, goal.target))} / ${formatTZS(goal.target)}`
+                  : `${Math.min(progress, goal.target)} / ${goal.target}`;
+                return (
+                  <View key={goal.id} style={styles.weeklyGoal}>
+                    <View style={styles.xpRow}>
+                      <Text style={styles.missionTitle}>{complete ? '✅ ' : ''}{lang === 'sw' ? goal.title : goal.titleEn}</Text>
+                      <Text style={styles.xpVal}>{progressText}</Text>
+                    </View>
+                    <ProgressBar value={Math.min(progress, goal.target)} max={goal.target} height={6} color={complete ? colors.success : colors.primary} />
+                  </View>
+                );
+              })}
             </Card>
           )}
 
@@ -478,6 +569,34 @@ const styles = StyleSheet.create({
   },
   healthNum: { fontSize: font.sm, fontWeight: '900' },
   body: { padding: spacing.lg, gap: spacing.md },
+  savePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.card,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+  },
+  saveText: { color: colors.textMuted, fontSize: font.xs, fontWeight: '800' },
+  tutorialRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
+  },
+  tutorialStatus: { fontSize: 17 },
+  tutorialTitle: { color: colors.text, fontSize: font.sm, fontWeight: '900' },
+  tutorialDesc: { color: colors.textMuted, fontSize: font.xs, lineHeight: 17, marginTop: 2 },
+  tutorialArrow: { color: colors.primary, fontSize: 20, fontWeight: '900' },
+  advisorRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
+    alignItems: 'flex-start',
+  },
+  advisorBody: { color: colors.textMuted, fontSize: font.xs, lineHeight: 17, marginTop: 2 },
+  weeklyGoal: { paddingTop: spacing.sm, gap: 4 },
   eventBanner: {
     backgroundColor: colors.accent + '22',
     borderWidth: 1.5,

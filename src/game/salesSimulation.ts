@@ -76,6 +76,7 @@ function returnedUnitsForSale(product: Product, sold: number, protection: number
 
 export function simulateDay(state: GameState): SalesOutcome {
   const { salesMultiplier, demandMultiplier, qualityProtection } = aggregateBoosts(state);
+  const loc = findLocation(state.currentLocationId);
 
   const newInventory: InventoryItem[] = [];
   const perProduct: SalesOutcome['perProduct'] = [];
@@ -93,7 +94,8 @@ export function simulateDay(state: GameState): SalesOutcome {
     }
     const baseRate = DEMAND_BASE[product.demand];
     const variance = 0.80 + Math.random() * 0.45; // 0.80 - 1.25 (wider positive skew)
-    const sellRate = Math.min(1, baseRate * salesMultiplier * demandMultiplier * variance);
+    const categoryBoost = loc?.categoryBoosts?.[product.category] ?? 0;
+    const sellRate = Math.min(1, baseRate * salesMultiplier * demandMultiplier * (1 + categoryBoost) * variance);
     const sold = Math.min(item.quantity, Math.floor(item.quantity * sellRate));
 
     const returned = returnedUnitsForSale(product, sold, qualityProtection);
@@ -190,6 +192,6 @@ export function adviceForDay(
   }
   return {
     sw: 'Faida ya wastani. Endelea kuzungusha pesa, biashara ni stamina.',
-    en: 'Modest profit. Keep flipping cash — business is a marathon.',
+    en: 'Modest profit. Keep flipping cash - business is a marathon.',
   };
 }

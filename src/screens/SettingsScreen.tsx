@@ -162,6 +162,8 @@ export const SettingsScreen: React.FC = () => {
     setVibration,
     setBusinessName,
     applyCheatCode,
+    saveStatus,
+    lastSavedAt,
     resetGame,
   } = useGame();
   const toast = useToast();
@@ -170,6 +172,7 @@ export const SettingsScreen: React.FC = () => {
   const [showCheatModal, setShowCheatModal] = useState(false);
   const [secretTapCount, setSecretTapCount] = useState(0);
   const loanBalance = state.loans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
+  const savedTime = lastSavedAt ? new Date(lastSavedAt).toLocaleString() : (lang === 'sw' ? 'Bado' : 'Not yet');
 
   const handleSaveName = (name: string) => {
     setBusinessName(name);
@@ -292,6 +295,16 @@ export const SettingsScreen: React.FC = () => {
           <StatRow
             label={lang === 'sw' ? 'Mafanikio' : 'Achievements'}
             value={`${state.achievements.length} / ${ACHIEVEMENTS.length}`}
+          />
+          <StatRow
+            label={lang === 'sw' ? 'Save status' : 'Save status'}
+            value={saveStatus === 'error' ? (lang === 'sw' ? 'Imefeli' : 'Failed') : saveStatus === 'saving' ? (lang === 'sw' ? 'Inahifadhi' : 'Saving') : (lang === 'sw' ? 'Imehifadhi' : 'Saved')}
+            negative={saveStatus === 'error'}
+            highlight={saveStatus === 'saved'}
+          />
+          <StatRow
+            label={lang === 'sw' ? 'Last saved' : 'Last saved'}
+            value={savedTime}
           />
         </Card>
 
