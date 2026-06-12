@@ -152,6 +152,58 @@ function CheatCodeModal({
   );
 }
 
+function ImportSaveModal({
+  lang,
+  onImport,
+  onClose,
+}: {
+  lang: 'sw' | 'en';
+  onImport: (json: string) => void;
+  onClose: () => void;
+}) {
+  const [json, setJson] = useState('');
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.modalBox}>
+          <Text style={styles.modalTitle}>
+            📥 {lang === 'sw' ? 'Rejesha Save' : 'Import Save'}
+          </Text>
+          <Text style={styles.aboutText}>
+            {lang === 'sw'
+              ? 'Bandika save code uliyo-export hapa. Itafuta progress ya sasa!'
+              : 'Paste a previously exported save code here. It will replace your current progress!'}
+          </Text>
+          <TextInput
+            style={[styles.nameInput, { height: 120, fontSize: font.xs, fontWeight: '400', textAlignVertical: 'top' }]}
+            value={json}
+            onChangeText={setJson}
+            multiline
+            autoCorrect={false}
+            autoCapitalize="none"
+            placeholder='{"saveVersion":8,"cash":...}'
+            placeholderTextColor={colors.textMuted}
+          />
+          <View style={styles.modalBtns}>
+            <Button title={t('cancel', lang)} onPress={onClose} variant="outline" size="sm" style={{ flex: 1 }} />
+            <Button
+              title={lang === 'sw' ? 'Rejesha' : 'Import'}
+              onPress={() => onImport(json)}
+              size="sm"
+              style={{ flex: 1 }}
+              disabled={!json.trim()}
+            />
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 export const SettingsScreen: React.FC = () => {
   const nav = useNavigation<any>();
   const {
@@ -165,11 +217,14 @@ export const SettingsScreen: React.FC = () => {
     saveStatus,
     lastSavedAt,
     resetGame,
+    exportSave,
+    importSave,
   } = useGame();
   const toast = useToast();
   const lang = language;
   const [showNameModal, setShowNameModal] = useState(false);
   const [showCheatModal, setShowCheatModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [secretTapCount, setSecretTapCount] = useState(0);
   const loanBalance = state.loans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
   const savedTime = lastSavedAt ? new Date(lastSavedAt).toLocaleString() : (lang === 'sw' ? 'Bado' : 'Not yet');
@@ -201,6 +256,39 @@ export const SettingsScreen: React.FC = () => {
         },
       },
     ]);
+  };
+
+  const handleExportSave = async () => {
+    try {
+      await Share.share({ message: exportSave() });
+    } catch {
+      toast.error(lang === 'sw' ? 'Imeshindikana ku-share save.' : 'Could not share the save.');
+    }
+  };
+
+  const handleImportSave = (json: string) => {
+    Alert.alert(
+      lang === 'sw' ? 'Rejesha save hii?' : 'Import this save?',
+      lang === 'sw' ? 'Progress ya sasa itafutwa.' : 'Your current progress will be replaced.',
+      [
+        { text: t('cancel', lang), style: 'cancel' },
+        {
+          text: t('yes', lang),
+          style: 'destructive',
+          onPress: () => {
+            const res = importSave(json);
+            if (res.ok) {
+              setShowImportModal(false);
+              toast.success(lang === 'sw' ? 'Save imerejeshwa!' : 'Save imported!');
+            } else {
+              toast.error(
+                lang === 'sw' ? 'Save code si sahihi. Hakikisha umebandika yote.' : 'Invalid save code. Make sure you pasted the whole thing.',
+              );
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleVersionTap = () => {
@@ -308,6 +396,32 @@ export const SettingsScreen: React.FC = () => {
           />
         </Card>
 
+        <Card>
+          <Text style={styles.cardTitle}>💾 {lang === 'sw' ? 'Backup ya Save' : 'Save Backup'}</Text>
+          <Text style={styles.aboutText}>
+            {lang === 'sw'
+              ? 'Save iko kwenye simu hii tu. Export uihifadhi mahali salama (WhatsApp, Notes, email).'
+              : 'Your save lives only on this phone. Export it somewhere safe (WhatsApp, Notes, email).'}
+          </Text>
+          <View style={[styles.langRow, { marginTop: spacing.md }]}>
+            <Button
+              title={`📤 ${lang === 'sw' ? 'Export Save' : 'Export Save'}`}
+              onPress={handleExportSave}
+              variant="outline"
+              size="sm"
+              style={{ flex: 1 }}
+            />
+            <View style={{ width: spacing.sm }} />
+            <Button
+              title={`📥 ${lang === 'sw' ? 'Import Save' : 'Import Save'}`}
+              onPress={() => setShowImportModal(true)}
+              variant="outline"
+              size="sm"
+              style={{ flex: 1 }}
+            />
+          </View>
+        </Card>
+
         <Button
           title={`📤 ${lang === 'sw' ? 'Shiriki Biashara Yako' : 'Share Your Business'}`}
           onPress={handleShare}
@@ -370,6 +484,14 @@ export const SettingsScreen: React.FC = () => {
           lang={lang}
           onApply={handleApplyCheat}
           onClose={() => setShowCheatModal(false)}
+        />
+      )}
+
+      {showImportModal && (
+        <ImportSaveModal
+          lang={lang}
+          onImport={handleImportSave}
+          onClose={() => setShowImportModal(false)}
         />
       )}
     </SafeAreaView>

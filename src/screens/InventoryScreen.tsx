@@ -15,6 +15,8 @@ import { Header } from '@/components/Header';
 import { Pill } from '@/components/Pill';
 import { Button } from '@/components/Button';
 import { clearanceUnitPrice } from '@/game/economy';
+import { dayPriceFor } from '@/game/marketPrices';
+import { buzz } from '@/utils/haptics';
 
 type SortKey = 'name' | 'value' | 'qty' | 'profit';
 
@@ -53,18 +55,18 @@ export const InventoryScreen: React.FC = () => {
           case 'value':
             return b.item.quantity * b.item.unitCost - a.item.quantity * a.item.unitCost;
           case 'profit':
-            const gainA = (pa.sellPrice - a.item.unitCost) * a.item.quantity;
-            const gainB = (pb.sellPrice - b.item.unitCost) * b.item.quantity;
+            const gainA = (dayPriceFor(pa, state.day).sellPrice - a.item.unitCost) * a.item.quantity;
+            const gainB = (dayPriceFor(pb, state.day).sellPrice - b.item.unitCost) * b.item.quantity;
             return gainB - gainA;
           default:
             return 0;
         }
       });
-  }, [state.inventory, sort, lang]);
+  }, [state.inventory, state.day, sort, lang]);
 
   const totalPotentialProfit = sorted.reduce((sum, { item, product }) => {
     if (!product) return sum;
-    return sum + (product.sellPrice - item.unitCost) * item.quantity;
+    return sum + (dayPriceFor(product, state.day).sellPrice - item.unitCost) * item.quantity;
   }, 0);
 
   const SORTS: { key: SortKey; sw: string; en: string }[] = [
@@ -94,6 +96,7 @@ export const InventoryScreen: React.FC = () => {
           onPress: () => {
             const res = clearInventory(productId, qty);
             if (res.ok) {
+              buzz(state.settings, 'success');
               toast.success(
                 lang === 'sw' ? 'Stock imeuzwa kwa discount' : 'Stock cleared',
                 `${formatTZS(res.cashGained ?? 0)} · ${res.profit && res.profit >= 0 ? '+' : ''}${formatTZS(res.profit ?? 0)}`,
@@ -170,11 +173,12 @@ export const InventoryScreen: React.FC = () => {
             {sorted.map(({ item, product }) => {
               if (!product) return null;
               const name = lang === 'en' ? product.nameEn : product.name;
+              const daySell = dayPriceFor(product, state.day).sellPrice;
               const totalCost = item.quantity * item.unitCost;
-              const totalSell = item.quantity * product.sellPrice;
+              const totalSell = item.quantity * daySell;
               const gain = totalSell - totalCost;
-              const marginPct = Math.round(((product.sellPrice - item.unitCost) / item.unitCost) * 100);
-              const clearancePrice = clearanceUnitPrice(product, item.unitCost);
+              const marginPct = Math.round(((daySell - item.unitCost) / item.unitCost) * 100);
+              const clearancePrice = clearanceUnitPrice(product, item.unitCost, daySell);
               const clearanceAll = clearancePrice * item.quantity;
 
               return (

@@ -3,6 +3,19 @@ import { findProduct } from '@/data/products';
 import { findLocation } from '@/data/locations';
 import { UPGRADES } from '@/data/upgrades';
 import { WORKERS } from '@/data/workers';
+import { dayPriceFor } from './marketPrices';
+import { seasonBoostFor } from './seasons';
+import { legacySalesBoost } from './prestige';
+import { cityDemandFactor } from './cities';
+import { saturationFor, sellRateImpact } from './marketImpact';
+
+/** Workers get +0.5% sales boost per 10 days of tenure, capped at +5% each. */
+export function workerTenureBoost(state: GameState, workerId: string): number {
+  const hiredOn = state.workerHiredOnDay?.[workerId];
+  if (hiredOn === undefined) return 0;
+  const tenure = Math.max(0, state.day - hiredOn);
+  return Math.min(0.05, Math.floor(tenure / 10) * 0.005);
+}
 
 // Sell rates: slightly more generous early so players feel momentum
 const DEMAND_BASE: Record<Demand, number> = {
@@ -47,19 +60,24 @@ function aggregateBoosts(state: GameState) {
     const w = WORKERS.find((x) => x.id === id);
     if (!w) return;
     salesBoost += w.effects.salesBoostPercent ?? 0;
+    salesBoost += workerTenureBoost(state, id);
     demandBoost += w.effects.demandBoostPercent ?? 0;
     qualityProtection += w.effects.inventoryLossReductionPercent ?? 0;
     qualityProtection += w.effects.eventLossReductionPercent ?? 0;
   });
 
+  // Prestige: permanent legacy bonus
+  salesBoost += legacySalesBoost(state.legacyLevel ?? 0);
+
   const loc = findLocation(state.currentLocationId);
   const locationMult = loc?.demandMultiplier ?? 1;
+  const cityMult = cityDemandFactor(state.currentCityId ?? 'dar');
 
   const repBoost = Math.max(-0.2, Math.min(0.3, state.reputation * 0.01));
 
   return {
     salesMultiplier: 1 + salesBoost,
-    demandMultiplier: (1 + demandBoost) * locationMult * (1 + repBoost),
+    demandMultiplier: (1 + demandBoost) * locationMult * cityMult * (1 + repBoost),
     qualityProtection: Math.min(0.75, qualityProtection),
   };
 }
@@ -95,15 +113,18 @@ export function simulateDay(state: GameState): SalesOutcome {
     const baseRate = DEMAND_BASE[product.demand];
     const variance = 0.80 + Math.random() * 0.45; // 0.80 - 1.25 (wider positive skew)
     const categoryBoost = loc?.categoryBoosts?.[product.category] ?? 0;
-    const sellRate = Math.min(1, baseRate * salesMultiplier * demandMultiplier * (1 + categoryBoost) * variance);
+    const seasonBoost = seasonBoostFor(state.day, product.category);
+    const saturationDrag = sellRateImpact(saturationFor(state, item.productId));
+    const sellRate = Math.min(1, baseRate * salesMultiplier * demandMultiplier * (1 + categoryBoost) * (1 + seasonBoost) * saturationDrag * variance);
     const sold = Math.min(item.quantity, Math.floor(item.quantity * sellRate));
 
     const returned = returnedUnitsForSale(product, sold, qualityProtection);
     const netSold = sold - returned;
+    const daySellPrice = dayPriceFor(product, state.day).sellPrice;
 
     if (sold > 0) {
-      const r = netSold * product.sellPrice;
-      const loss = returned * product.sellPrice;
+      const r = netSold * daySellPrice;
+      const loss = returned * daySellPrice;
       revenue += r;
       cogs += sold * item.unitCost;
       unitsSold += netSold;

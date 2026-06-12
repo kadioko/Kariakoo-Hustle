@@ -11,24 +11,31 @@ The MVP is offline-friendly and uses AsyncStorage only. There is no backend, no 
 | System | Status |
 | --- | --- |
 | Swahili-first UI with English switch | Done |
-| 25 products across 10 categories | Done |
-| Demand, risk, margin, and market insight scoring | Done |
-| Product risk can cause returns and quality losses | Done |
-| Inventory clearance sales for slow stock | Done |
-| Daily missions with auto rewards | Done |
-| Daily sales simulation | Done |
-| 29 random events, including choice events | Done |
-| Daily profit/loss reports with expense breakdowns | Done |
-| Loans, daily repayments, runway, and debt-aware net worth | Done |
-| Dashboard next-move guidance | Done |
-| 12 upgrades | Done |
-| 7 worker types | Done |
-| 10 locations | Done |
-| 8 achievements with rewards | Done |
-| XP, levels, reputation, and net worth | Done |
-| AsyncStorage save/load/reset with save migration | Done |
-| Share text placeholder | Done |
+| 30 products across 10 categories (unlocks to level 10) | Done |
+| Deterministic daily price fluctuation (buy dips, sell spikes) | Done |
+| Dynamic supply & demand — your buying saturates the market | Done |
+| Supplier negotiation mini-game (haggle on 10+ unit orders) | Done |
+| Trade routes: Dar, Arusha, Mwanza, Zanzibar with regional prices & travel risk | Done |
+| Rotating weekly seasons boosting product categories | Done |
+| 8-chapter story campaign (Mama, Inspekta Mushi, rivals, legacy) | Done |
+| Living rivals: undercuts, worker poaching, alliances + leaderboard | Done |
+| Property ladder: rent-free stall, warehouse, landlord income | Done |
+| Bank: 3 loan tiers, reputation-based interest, early payoff | Done |
+| Profit streaks with escalating bonuses | Done |
+| Prestige ("Mtaji wa Ukoo"): permanent legacy bonuses | Done |
+| Business School: 9 bilingual financial literacy lessons | Done |
+| 33+ random street events, including choice events | Done |
+| Daily missions & weekly goals with auto rewards | Done |
+| Daily P&L reports, 7-day profit chart, business advisor | Done |
+| 12 upgrades · 7 workers (improve with tenure) · 10 locations | Done |
+| 14 achievements with rewards | Done |
+| XP, levels, reputation, debt-aware net worth | Done |
+| Versioned saves (v9) with corruption-safe migration + export/import | Done |
+| Haptic feedback, animated reports, level-up celebrations | Done |
+| Unit tests for all game systems (`npm test`) | Done |
 | Monetization placeholders, no ads implemented | Done |
+
+See `ROADMAP.md` for what's next: art, sound, Supabase multiplayer, Play Store launch.
 
 ## Quick Start
 
@@ -56,40 +63,52 @@ Or start Metro and scan the QR code with Expo Go:
 npx expo start
 ```
 
-### Type Check
+### Type Check & Tests
 
 ```bash
-npm run tsc
+npm run tsc    # TypeScript check
+npm test       # game-logic test suite (node:test via tsx)
 ```
 
 ## Project Structure
 
 ```text
 src/
-  components/       Reusable UI components
-  data/             Products, events, upgrades, workers, locations, achievements
-  game/             Economy, sales, events, missions, progression, save defaults, product insights
+  components/       Reusable UI components (Button, Card, Toast, ProgressBar, ...)
+  data/             Products, events, rival events, lessons, upgrades, workers, locations, achievements
+  game/             Pure game logic — fully unit-testable, no React imports
+    dayCycle.ts       runDay(): the whole business day as one pure state transition
+    economy.ts        money math, expenses, capacity, net worth, bulk discounts
+    salesSimulation.ts  demand model (season, city, saturation, boosts)
+    marketPrices.ts   deterministic daily price swings
+    marketImpact.ts   player-driven supply & demand
+    cities.ts         trade routes & travel
+    negotiation.ts    supplier haggling
+    story.ts          campaign chapters & goals
+    property.ts       ownership ladder
+    rivals.ts         NPC traders + reactive events
+    prestige.ts       legacy system
+    bank.ts, streaks.ts, seasons.ts, missions.ts, weeklyGoals.ts, ...
   navigation/       Stack and tab navigation
-  screens/          Game screens
-  state/            GameContext and actions
+  screens/          Game screens (Dashboard, Market, Sell, Travel, Property, Lessons, Bank, ...)
+  state/            GameContext — thin React wiring over the pure logic
   storage/          AsyncStorage wrapper
   theme/            Colors, spacing, font sizes, shadows
   types/            Shared TypeScript types
-  utils/            Formatting and i18n helpers
-docs/
-  GAME_DESIGN.md    Product/design notes and upgrade roadmap
-  BALANCING.md      Economy tuning guide
-  ROADMAP.md        Production roadmap and remaining work
+  utils/            Formatting, i18n, haptics
+tests/              node:test suites covering every game system
+ROADMAP.md          Art, sound, backend/multiplayer, and launch plan
 ```
 
 ## How To Play
 
 1. Start with 50,000 TZS at Kariakoo Street Table.
-2. Open Soko and buy products with good demand, margin, and risk.
+2. Open Soko and buy products with good demand, margin, and risk — watch the daily price arrows and haggle on big orders.
 3. Tap Uza Leo to simulate one business day.
 4. Review revenue, cost of goods, expenses, event effects, and advice.
-5. Reinvest into more stock, upgrades, workers, and locations.
-6. Build reputation and net worth until the business becomes an empire.
+5. Reinvest into stock, upgrades, workers, locations, and property; take loans when the math works.
+6. Travel to Arusha, Mwanza, or Zanzibar for regional bargains; follow the story chapters.
+7. Beat your rivals, reach 10M net worth, and prestige into a family legacy.
 
 ## Important Game Systems
 
@@ -103,13 +122,27 @@ Slow stock can be cleared from the Inventory screen at a discount. This gives th
 
 Each day sells a portion of inventory based on:
 
-- Product demand
+- Product demand and today's deterministic sell price
 - Product risk through returned/faulty units
-- Current location demand multiplier
-- Reputation
-- Upgrade boosts
-- Worker boosts
+- Current location demand multiplier and current city demand factor
+- Active season (weekly category boosts)
+- Market saturation from your own recent buying
+- Reputation, upgrade boosts, worker boosts (plus tenure), legacy bonus
 - Random daily variance
+
+### Prices, saturation & haggling
+
+Buy/sell prices swing deterministically each day (`marketPrices.ts`) — the same day always
+quotes the same price. Buying heavily saturates a product's market (`marketImpact.ts`):
+suppliers charge up to +15% more and sales slow up to 25%, decaying 30% per night.
+Orders of 10+ units unlock haggling (`negotiation.ts`) with reputation-driven odds.
+
+### Trade routes, property & story
+
+Travel between four cities with regional specialties (cheaper buy prices) and demand levels;
+trips cost cash, take a day, and risk stock loss. Properties remove rent, add capacity, or pay
+daily landlord income. The 8-chapter story (`story.ts`) tracks goals on the dashboard and pays
+rewards through the day cycle. Rivals grow deterministically and fire reactive events.
 
 Risky products can create quality losses. Returned/faulty units reduce collected revenue, still consume stock, and can hurt reputation. Workers and protection upgrades reduce that risk.
 
@@ -131,18 +164,19 @@ Each day generates two small missions based on level, such as hitting revenue, u
 
 ### Save system
 
-The app saves locally through AsyncStorage. Saves include:
+The app saves locally through AsyncStorage (schema v9). Saves include:
 
-- Cash, day, level, XP, reputation
-- Inventory
-- Upgrades, workers, locations
-- Achievements
+- Cash, day, level, XP, reputation, streaks, legacy level
+- Inventory and market saturation
+- Upgrades, workers (+hire days), locations, properties, current city
+- Achievements, story progress, lessons read
 - Reports and lifetime totals
-- Clearance revenue and discount loss
-- Active daily missions and completed mission ids
-- Active loans and repayment terms
+- Active daily missions, weekly goals, and loans
 - Settings and language
 - Save version metadata
+
+Saves are validated on load (NaN/corrupt values sanitized) and migrate automatically across
+versions. Players can export/import saves as text from Settings → Save Backup.
 
 New fields should be added to `createInitialState` and protected in `normalizeGameState`.
 

@@ -1,4 +1,10 @@
 import { GameEvent } from '@/types';
+import { RIVAL_EVENTS } from './rivalEvents';
+
+/** Look up any event — street events or rival events — by id. */
+export function findEvent(id: string): GameEvent | undefined {
+  return EVENTS.find((e) => e.id === id) ?? RIVAL_EVENTS.find((e) => e.id === id);
+}
 
 export const EVENTS: GameEvent[] = [
   // Positive
@@ -306,6 +312,83 @@ export const EVENTS: GameEvent[] = [
         effect: {},
         effectText: 'Umebaki salama.',
         effectTextEn: 'You stayed safe.',
+      },
+    ],
+  },
+
+  // Late-game events (level 6+)
+  {
+    id: 'wholesale_contract',
+    type: 'positive',
+    title: 'Kontrakti ya Jumla',
+    titleEn: 'Wholesale Contract',
+    description: 'Duka kubwa limekupa kontrakti ya kusambaza bidhaa.',
+    descriptionEn: 'A big shop signed you as their supplier.',
+    emoji: '📝',
+    probability: 0.04,
+    minLevel: 6,
+    effect: { cash: 80000, reputation: 2 },
+  },
+  {
+    id: 'tax_audit',
+    type: 'negative',
+    title: 'Ukaguzi wa TRA',
+    titleEn: 'TRA Tax Audit',
+    description: 'Wakaguzi wa kodi wamepita. Umelipa kodi na faini ndogo.',
+    descriptionEn: 'Tax inspectors came by. You paid dues plus a small fine.',
+    emoji: '🧾',
+    probability: 0.04,
+    minLevel: 6,
+    effect: { cashPercent: -0.08 },
+  },
+  {
+    id: 'warehouse_flood',
+    type: 'negative',
+    title: 'Mafuriko Ghala',
+    titleEn: 'Warehouse Flooding',
+    description: 'Mvua kubwa imeingia ghala na kuharibu sehemu ya mzigo.',
+    descriptionEn: 'Heavy rains flooded your storage and damaged stock.',
+    emoji: '🌊',
+    probability: 0.03,
+    minLevel: 7,
+    effect: { inventoryLossPercent: 0.1 },
+  },
+  {
+    id: 'export_deal',
+    type: 'choice',
+    title: 'Oda ya Nje ya Nchi',
+    titleEn: 'Cross-Border Order',
+    description:
+      'Mfanyabiashara wa Congo anataka mzigo mkubwa kwa malipo ya baadaye. Una-risk?',
+    descriptionEn:
+      'A trader from Congo wants a big order on delayed payment. Risk it?',
+    emoji: '🌍',
+    probability: 0.04,
+    minLevel: 7,
+    choices: [
+      {
+        id: 'export_yes',
+        label: 'Kubali oda',
+        labelEn: 'Accept the order',
+        effect: { cash: 60000, reputation: 1 },
+        effectText: 'Malipo yamekamilika! +60,000 TZS, +1 sifa',
+        effectTextEn: 'Payment came through! +60,000 TZS, +1 rep',
+      },
+      {
+        id: 'export_half',
+        label: 'Omba nusu ya malipo kwanza',
+        labelEn: 'Ask for half upfront',
+        effect: { cash: 25000 },
+        effectText: 'Biashara salama. +25,000 TZS',
+        effectTextEn: 'Safe deal. +25,000 TZS',
+      },
+      {
+        id: 'export_no',
+        label: 'Kataa',
+        labelEn: 'Decline',
+        effect: {},
+        effectText: 'Umeepuka hatari ya malipo hewa.',
+        effectTextEn: 'You avoided a possible payment scam.',
       },
     ],
   },

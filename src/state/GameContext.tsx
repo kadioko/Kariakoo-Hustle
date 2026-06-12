@@ -12,40 +12,43 @@ import {
   EventChoice,
   GameEvent,
   GameState,
-  InventoryItem,
   Language,
 } from '@/types';
 import { createInitialState, normalizeGameState } from '@/game/saveGame';
 import { clearGame, loadGameResult, saveGame } from '@/storage';
 import { findProduct } from '@/data/products';
-import { EVENTS } from '@/data/events';
+import { findEvent } from '@/data/events';
 import {
   addInventory,
-  calcDailyExpenses,
+  bulkDiscountRate,
   clearanceUnitPrice,
   inventoryCapacity,
   inventoryUnits,
   removeInventoryUnits,
-  settleDailyLoans,
 } from '@/game/economy';
-import {
-  adviceForDay,
-  reputationDeltaFromDay,
-  simulateDay,
-} from '@/game/salesSimulation';
-import { applyEffect, rollEvent } from '@/game/randomEvents';
-import { applyXp, checkAchievements, xpForLevel, xpFromDay } from '@/game/progression';
-import { ensureDailyMissions, evaluateMissions, generateDailyMissions } from '@/game/missions';
+import { applyEffect } from '@/game/randomEvents';
+import { applyXp, checkAchievements, xpForLevel } from '@/game/progression';
+import { ensureDailyMissions } from '@/game/missions';
 import { findCashCheat, normalizeCheatCode } from '@/game/cheats';
 import { buyUpgradeAction, hireWorkerAction, unlockLocationAction } from '@/game/businessActions';
-import { ensureWeeklyGoals, evaluateWeeklyGoals } from '@/game/weeklyGoals';
-import { buildReportInsights } from '@/game/reportInsights';
+import { ensureWeeklyGoals } from '@/game/weeklyGoals';
+import { runDay } from '@/game/dayCycle';
+import { StoryChapter } from '@/game/story';
+import { dayPriceFor } from '@/game/marketPrices';
+import { repayLoanAction, takeLoanAction } from '@/game/bank';
+import { canPrestige, doPrestige } from '@/game/prestige';
+import { cityBuyFactor, travelToCity } from '@/game/cities';
+import { addSaturation, buyPriceImpact, saturationFor } from '@/game/marketImpact';
+import { buyPropertyAction } from '@/game/property';
+import { LESSON_XP, LESSONS } from '@/data/lessons';
 
 interface EndDayOutcome {
   report: DailyReport;
   pendingEvent?: GameEvent;
   newlyUnlockedAchievements: string[];
   completedWeeklyGoals: { id: string; title: string; titleEn: string; rewardText: string; rewardTextEn: string }[];
+  levelsGained: number;
+  completedStoryChapter?: StoryChapter;
 }
 
 interface GameContextType {
@@ -57,7 +60,11 @@ interface GameContextType {
   language: Language;
   inventoryCap: number;
   inventoryUsed: number;
-  buyProduct: (productId: string, qty: number) => { ok: boolean; reason?: string };
+  buyProduct: (
+    productId: string,
+    qty: number,
+    haggleDiscountPercent?: number,
+  ) => { ok: boolean; reason?: string };
   clearInventory: (
     productId: string,
     qty: number,
@@ -68,6 +75,14 @@ interface GameContextType {
   buyUpgrade: (id: string) => { ok: boolean; reason?: string };
   hireWorker: (id: string) => { ok: boolean; reason?: string };
   unlockLocation: (id: string) => { ok: boolean; reason?: string };
+  takeLoan: (offerId: string) => { ok: boolean; reason?: string };
+  repayLoan: (loanId: string) => { ok: boolean; reason?: string; paid?: number };
+  prestige: () => { ok: boolean };
+  exportSave: () => string;
+  importSave: (json: string) => { ok: boolean; error?: 'invalid_json' };
+  travelTo: (cityId: string) => { ok: boolean; reason?: string; lostUnits?: number };
+  buyProperty: (id: string) => { ok: boolean; reason?: string };
+  markLessonRead: (id: string) => { firstRead: boolean };
   switchLocation: (id: string) => void;
   setLanguage: (lang: Language) => void;
   setSound: (v: boolean) => void;
@@ -130,11 +145,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [isLoaded, state.day]);
 
   const buyProduct = useCallback(
-    (productId: string, qty: number) => {
+    (productId: string, qty: number, haggleDiscountPercent = 0) => {
       const p = findProduct(productId);
       if (!p) return { ok: false, reason: 'not_found' };
       if (p.unlockLevel > state.level) return { ok: false, reason: 'not_unlocked' };
-      const totalCost = p.buyPrice * qty;
+      const dayBuyPrice = dayPriceFor(p, state.day).buyPrice;
+      const cityFactor = cityBuyFactor(state.currentCityId, p.category);
+      const saturation = buyPriceImpact(saturationFor(state, productId));
+      const quotedUnit = Math.round(dayBuyPrice * cityFactor * saturation);
+      const bulk = bulkDiscountRate(qty);
+      const haggle = Math.max(0, Math.min(15, haggleDiscountPercent)) / 100;
+      const unitPrice = Math.max(1, Math.round(quotedUnit * (1 - bulk) * (1 - haggle)));
+      const totalCost = unitPrice * qty;
       if (state.cash < totalCost) return { ok: false, reason: 'not_enough_cash' };
       const cap = inventoryCapacity(state);
       const used = inventoryUnits(state);
@@ -142,7 +164,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({
         ...s,
         cash: s.cash - totalCost,
-        inventory: addInventory(s.inventory, productId, qty, p.buyPrice),
+        inventory: addInventory(s.inventory, productId, qty, unitPrice),
+        marketSaturation: addSaturation(s.marketSaturation, productId, qty),
       }));
       return { ok: true };
     },
@@ -156,10 +179,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (!item || !product) return { ok: false, reason: 'not_found' };
       if (qty <= 0) return { ok: false, reason: 'invalid_qty' };
       const clearQty = Math.min(qty, item.quantity);
-      const unitPrice = clearanceUnitPrice(product, item.unitCost);
+      const daySellPrice = dayPriceFor(product, state.day).sellPrice;
+      const unitPrice = clearanceUnitPrice(product, item.unitCost, daySellPrice);
       const cashGained = unitPrice * clearQty;
       const costBasis = item.unitCost * clearQty;
-      const expectedValue = product.sellPrice * clearQty;
+      const expectedValue = daySellPrice * clearQty;
       const profit = cashGained - costBasis;
       const discountLoss = Math.max(0, expectedValue - cashGained);
 
@@ -184,168 +208,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const endDay = useCallback((): EndDayOutcome => {
-    let working: GameState = state;
-
-    const expenses = calcDailyExpenses(working);
-    const outcome = simulateDay(working);
-
-    const pendingEvent = rollEvent(working);
-
-    let eventTitle: string | undefined;
-    let eventTitleEn: string | undefined;
-    let eventEffectText: string | undefined;
-    let eventEffectTextEn: string | undefined;
-    let eventCash = 0;
-    let eventRep = 0;
-    let eventInventory: InventoryItem[] | null = null;
-    let eventLoan = pendingEvent?.effect?.loan;
-
-    if (pendingEvent) {
-      eventTitle = pendingEvent.title;
-      eventTitleEn = pendingEvent.titleEn;
-    }
-
-    // Apply non-choice events immediately, choice events deferred
-    if (pendingEvent && pendingEvent.type !== 'choice' && pendingEvent.effect) {
-      const afterSalesState: GameState = { ...working, inventory: outcome.newInventory };
-      const applied = applyEffect(afterSalesState, pendingEvent.effect, outcome.revenue);
-      eventCash = applied.cashChange;
-      eventRep = applied.reputationChange;
-      eventInventory = applied.inventory;
-      eventLoan = pendingEvent.effect.loan;
-      eventEffectText = pendingEvent.description;
-      eventEffectTextEn = pendingEvent.descriptionEn;
-    } else if (pendingEvent && pendingEvent.type === 'choice') {
-      eventEffectText = 'Uamuzi unasubiri. Chagua hatua ya kuchukua.';
-      eventEffectTextEn = 'Decision pending. Choose what to do next.';
-    }
-
-    const grossProfit = outcome.revenue - outcome.cogs;
-    const repChange = reputationDeltaFromDay(working, outcome) + eventRep;
-    const netProfit = grossProfit - expenses.total + eventCash;
-    const advice = adviceForDay(working, outcome, netProfit);
-
-    const productSalesCount = { ...working.productSalesCount };
-    outcome.perProduct.forEach((p) => {
-      productSalesCount[p.productId] = (productSalesCount[p.productId] ?? 0) + p.sold;
-    });
-
-    let report: DailyReport = {
-      day: working.day,
-      revenue: outcome.revenue,
-      cogs: outcome.cogs,
-      grossProfit,
-      expenses: expenses.total,
-      expenseBreakdown: {
-        rent: expenses.rent,
-        transport: expenses.transport,
-        workerSalary: expenses.workerSalary,
-        storage: expenses.storage,
-        loanPayment: expenses.loanPayment,
-      },
-      netProfit,
-      unitsSold: outcome.unitsSold,
-      returnedUnits: outcome.returnedUnits,
-      qualityLoss: outcome.qualityLoss,
-      unitsRemaining: outcome.unitsRemaining,
-      reputationChange: repChange,
-      bestSellerId: outcome.bestSellerId,
-      worstSellerId: outcome.worstSellerId,
-      salesBreakdown: outcome.perProduct,
-      ...buildReportInsights(working, {
-        day: working.day,
-        revenue: outcome.revenue,
-        cogs: outcome.cogs,
-        grossProfit,
-        expenses: expenses.total,
-        netProfit,
-        unitsSold: outcome.unitsSold,
-        returnedUnits: outcome.returnedUnits,
-        qualityLoss: outcome.qualityLoss,
-        unitsRemaining: outcome.unitsRemaining,
-        reputationChange: repChange,
-        bestSellerId: outcome.bestSellerId,
-        worstSellerId: outcome.worstSellerId,
-        advice: advice.sw,
-        adviceEn: advice.en,
-      }),
-      eventTitle: eventTitle,
-      eventTitleEn: eventTitleEn,
-      eventEffectText: eventEffectText,
-      eventEffectTextEn: eventEffectTextEn,
-      advice: advice.sw,
-      adviceEn: advice.en,
-    };
-
-    const missionEvaluation = evaluateMissions(working, report);
-    report = { ...report, missionResults: missionEvaluation.missionResults };
-
-    let next: GameState = {
-      ...working,
-      cash: Math.max(0, working.cash + outcome.revenue - expenses.total + eventCash),
-      inventory: eventInventory ?? outcome.newInventory,
-      day: working.day + 1,
-      reputation: Math.max(-10, Math.min(100, working.reputation + repChange)),
-      reports: [report, ...working.reports].slice(0, 30),
-      totalRevenue: working.totalRevenue + outcome.revenue,
-      totalExpenses: working.totalExpenses + expenses.total + Math.max(0, -eventCash),
-      totalProfit: working.totalProfit + netProfit,
-      totalQualityLoss: working.totalQualityLoss + outcome.qualityLoss,
-      productSalesCount,
-      hasMadeFirstSale: working.hasMadeFirstSale || outcome.unitsSold > 0,
-      pendingEventId:
-        pendingEvent && pendingEvent.type === 'choice' ? pendingEvent.id : undefined,
-    };
-
-    next = {
-      ...next,
-      cash: Math.max(0, next.cash + (missionEvaluation.state.cash - working.cash)),
-      xp: missionEvaluation.state.xp,
-      reputation: Math.max(-10, Math.min(100, next.reputation + (missionEvaluation.state.reputation - working.reputation))),
-      completedMissionIds: missionEvaluation.state.completedMissionIds,
-    };
-
-    next = settleDailyLoans(next);
-
-    if (eventLoan && pendingEvent && pendingEvent.type !== 'choice') {
-      next = {
-        ...next,
-        loans: [
-          ...next.loans,
-          {
-            id: `${pendingEvent.id}_${working.day}`,
-            principal: eventLoan.principal,
-            remainingBalance: eventLoan.amountDue,
-            dailyPayment: Math.ceil(eventLoan.amountDue / eventLoan.termDays),
-            daysRemaining: eventLoan.termDays,
-            sourceTitle: pendingEvent.title,
-            sourceTitleEn: pendingEvent.titleEn,
-          },
-        ],
-      };
-    }
-
-    const weeklyEvaluation = evaluateWeeklyGoals(next);
-    next = weeklyEvaluation.state;
-
-    next = applyXp(next, xpFromDay(outcome.revenue, netProfit));
-    const ach = checkAchievements(next);
-    next = ach.state;
-    next = ensureWeeklyGoals({ ...next, missions: generateDailyMissions(next.day, next.level) });
-
-    setState(next);
-
+    const result = runDay(state);
+    setState(result.state);
     return {
-      report,
-      pendingEvent: pendingEvent && pendingEvent.type === 'choice' ? pendingEvent : undefined,
-      newlyUnlockedAchievements: ach.newlyUnlocked,
-      completedWeeklyGoals: weeklyEvaluation.completed,
+      report: result.report,
+      pendingEvent: result.pendingEvent,
+      newlyUnlockedAchievements: result.newlyUnlockedAchievements,
+      completedWeeklyGoals: result.completedWeeklyGoals,
+      levelsGained: result.levelsGained,
+      completedStoryChapter: result.completedStoryChapter,
     };
   }, [state]);
 
   const applyChoice = useCallback(
     (eventId: string, choiceId: string): { effectText: string; effectTextEn: string } => {
-      const event = EVENTS.find((e: GameEvent) => e.id === eventId);
+      const event = findEvent(eventId);
       const choice: EventChoice | undefined = event?.choices?.find(
         (c: EventChoice) => c.id === choiceId,
       );
@@ -425,6 +302,78 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     [state],
   );
+
+  const takeLoan = useCallback(
+    (offerId: string) => {
+      const outcome = takeLoanAction(state, offerId);
+      if (outcome.result.ok) setState(outcome.state);
+      return outcome.result;
+    },
+    [state],
+  );
+
+  const repayLoan = useCallback(
+    (loanId: string) => {
+      const outcome = repayLoanAction(state, loanId);
+      if (outcome.result.ok) setState(outcome.state);
+      return { ...outcome.result, paid: outcome.paid };
+    },
+    [state],
+  );
+
+  const travelTo = useCallback(
+    (cityId: string) => {
+      const outcome = travelToCity(state, cityId);
+      if (!outcome.ok) return { ok: false, reason: outcome.reason };
+      setState(outcome.state);
+      return { ok: true, lostUnits: outcome.lostUnits };
+    },
+    [state],
+  );
+
+  const buyProperty = useCallback(
+    (id: string) => {
+      const outcome = buyPropertyAction(state, id);
+      if (outcome.result.ok) setState(checkAchievements(outcome.state).state);
+      return outcome.result;
+    },
+    [state],
+  );
+
+  const markLessonRead = useCallback(
+    (id: string) => {
+      if (state.readLessonIds.includes(id)) return { firstRead: false };
+      if (!LESSONS.some((l) => l.id === id)) return { firstRead: false };
+      setState((s) =>
+        s.readLessonIds.includes(id)
+          ? s
+          : applyXp({ ...s, readLessonIds: [...s.readLessonIds, id] }, LESSON_XP),
+      );
+      return { firstRead: true };
+    },
+    [state],
+  );
+
+  const prestige = useCallback(() => {
+    if (!canPrestige(state)) return { ok: false };
+    setState(doPrestige(state));
+    return { ok: true };
+  }, [state]);
+
+  const exportSave = useCallback(() => JSON.stringify(state), [state]);
+
+  const importSave = useCallback((json: string): { ok: boolean; error?: 'invalid_json' } => {
+    try {
+      const parsed = JSON.parse(json);
+      if (!parsed || typeof parsed !== 'object' || typeof parsed.cash !== 'number') {
+        return { ok: false, error: 'invalid_json' };
+      }
+      setState(normalizeGameState(parsed));
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'invalid_json' };
+    }
+  }, []);
 
   const switchLocation = useCallback((id: string) => {
     setState((s) => {
@@ -521,6 +470,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       buyUpgrade,
       hireWorker,
       unlockLocation,
+      takeLoan,
+      repayLoan,
+      prestige,
+      exportSave,
+      importSave,
+      travelTo,
+      buyProperty,
+      markLessonRead,
       switchLocation,
       setLanguage,
       setSound,
@@ -544,6 +501,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       buyUpgrade,
       hireWorker,
       unlockLocation,
+      takeLoan,
+      repayLoan,
+      prestige,
+      exportSave,
+      importSave,
+      travelTo,
+      buyProperty,
+      markLessonRead,
       switchLocation,
       setLanguage,
       setSound,

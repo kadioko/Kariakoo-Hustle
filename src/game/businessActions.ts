@@ -35,6 +35,7 @@ export function hireWorkerAction(state: GameState, id: string): BusinessActionOu
     ...state,
     cash: state.cash - worker.salary,
     workers: [...state.workers, worker.id],
+    workerHiredOnDay: { ...state.workerHiredOnDay, [worker.id]: state.day },
   };
 
   return { state: checkAchievements(next).state, result: { ok: true } };

@@ -17,13 +17,19 @@ import { t } from '@/utils/i18n';
 import { formatTZS } from '@/utils/format';
 import { PRODUCTS } from '@/data/products';
 import { Product, ProductCategory } from '@/types';
-import { inventoryCapacity, inventoryUnits } from '@/game/economy';
+import { bulkDiscountRate, inventoryCapacity, inventoryUnits } from '@/game/economy';
+import { seasonBoostFor, seasonForDay } from '@/game/seasons';
+import { cityBuyFactor, findCity } from '@/game/cities';
+import { buyPriceImpact, saturationFor, saturationLevel } from '@/game/marketImpact';
+import { attemptHaggle, HAGGLE_MIN_QTY, HaggleAsk, MAX_ROUNDS } from '@/game/negotiation';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Pill } from '@/components/Pill';
 import { ProgressBar } from '@/components/ProgressBar';
 import { StatRow } from '@/components/StatRow';
-import { getProductInsight, productMargin } from '@/game/productInsights';
+import { getProductInsight } from '@/game/productInsights';
+import { DayPrice, dayPriceFor, isExpensive, isGoodDeal } from '@/game/marketPrices';
+import { buzz } from '@/utils/haptics';
 
 const CATEGORIES: { id: 'all' | ProductCategory; sw: string; en: string; emoji: string }[] = [
   { id: 'all', sw: 'Zote', en: 'All', emoji: '🛍️' },
@@ -55,16 +61,30 @@ const insightColor = {
 
 interface BuyModalProps {
   product: Product;
+  price: DayPrice;
+  /** Day price adjusted for city + market saturation — what the supplier actually quotes */
+  quotedUnit: number;
+  reputation: number;
   onClose: () => void;
-  onBuy: (qty: number) => void;
+  onBuy: (qty: number, haggleDiscountPercent: number) => void;
   freeSlots: number;
   cash: number;
   ownedQty: number;
   lang: 'sw' | 'en';
 }
 
+interface HaggleUiState {
+  discount: number;
+  round: number;
+  locked: boolean;
+  message?: { sw: string; en: string };
+}
+
 const BuyModal: React.FC<BuyModalProps> = ({
   product,
+  price,
+  quotedUnit,
+  reputation,
   onClose,
   onBuy,
   freeSlots,
@@ -73,14 +93,56 @@ const BuyModal: React.FC<BuyModalProps> = ({
   lang,
 }) => {
   const [qty, setQty] = useState(1);
-  const total = qty * product.buyPrice;
+  const [haggle, setHaggle] = useState<HaggleUiState>({ discount: 0, round: 1, locked: false });
+  const discount = bulkDiscountRate(qty);
+  const unitPrice = Math.max(1, Math.round(quotedUnit * (1 - discount) * (1 - haggle.discount / 100)));
+  const total = qty * unitPrice;
+
+  const canHaggle = qty >= HAGGLE_MIN_QTY && !haggle.locked && haggle.round <= MAX_ROUNDS;
+
+  const tryHaggle = (ask: HaggleAsk) => {
+    const outcome = attemptHaggle(ask, reputation, haggle.round);
+    if (outcome.result === 'offended') {
+      setHaggle({
+        discount: 0,
+        round: haggle.round,
+        locked: true,
+        message: {
+          sw: '😤 "Bei ni hiyo hiyo! Ukitaka chukua, usitake acha." Supplier amekasirika — bei imefungwa.',
+          en: '😤 "The price is the price! Take it or leave it." The supplier is offended — price is locked.',
+        },
+      });
+    } else if (outcome.result === 'accepted') {
+      setHaggle({
+        discount: outcome.discountPercent,
+        round: haggle.round,
+        locked: true,
+        message: {
+          sw: `🤝 "Sawa basi, kwa ajili yako..." Punguzo la ${outcome.discountPercent}% limekubaliwa!`,
+          en: `🤝 "Okay okay, just for you..." ${outcome.discountPercent}% discount accepted!`,
+        },
+      });
+    } else {
+      const nextRound = haggle.round + 1;
+      setHaggle({
+        discount: Math.max(haggle.discount, outcome.discountPercent),
+        round: nextRound,
+        locked: nextRound > MAX_ROUNDS,
+        message: {
+          sw: `🗣️ "Siwezi hiyo... lakini nitakupa ${outcome.discountPercent}%." Unaweza kujaribu tena.`,
+          en: `🗣️ "Can't do that... but I'll give you ${outcome.discountPercent}%." You can push again.`,
+        },
+      });
+    }
+  };
   const canAfford = cash >= total;
   const canFit = qty <= freeSlots && freeSlots > 0;
   const name = lang === 'en' ? product.nameEn : product.name;
   const desc = lang === 'en' ? product.descriptionEn : product.description;
-  const { margin, marginPercent } = productMargin(product);
+  const margin = price.sellPrice - unitPrice;
+  const marginPercent = unitPrice > 0 ? Math.round((margin / unitPrice) * 100) : 0;
   const insight = getProductInsight(product, lang);
-  const maxBuyable = Math.min(freeSlots, Math.floor(cash / product.buyPrice));
+  const maxBuyable = Math.min(freeSlots, Math.floor(cash / quotedUnit));
   const hasBuyingPower = maxBuyable > 0;
   const cashTieUpPercent = cash > 0 ? total / cash : 1;
   const tiesUpCash = cashTieUpPercent >= 0.45;
@@ -114,10 +176,29 @@ const BuyModal: React.FC<BuyModalProps> = ({
 
           {/* Stats */}
           <Card>
-            <StatRow label={t('cost', lang)} value={formatTZS(product.buyPrice)} />
             <StatRow
-              label={lang === 'sw' ? 'Bei ya Kuuza' : 'Sell Price'}
-              value={formatTZS(product.sellPrice)}
+              label={`${t('cost', lang)} ${price.buyTrend === 'up' ? '▲' : price.buyTrend === 'down' ? '▼' : ''}`}
+              value={formatTZS(quotedUnit)}
+            />
+            {quotedUnit !== price.buyPrice && (
+              <Text style={{ fontSize: font.xs, color: quotedUnit < price.buyPrice ? colors.success : colors.warning, marginBottom: 4 }}>
+                {quotedUnit < price.buyPrice
+                  ? lang === 'sw' ? `📍 Bei ya mji huu: nafuu kuliko Dar (${formatTZS(price.buyPrice)})` : `📍 Local price: cheaper than Dar (${formatTZS(price.buyPrice)})`
+                  : lang === 'sw' ? `⚠️ Umenunua nyingi hivi karibuni — supplier amepandisha bei (kawaida ${formatTZS(price.buyPrice)})` : `⚠️ You've been buying heavily — supplier raised the price (normally ${formatTZS(price.buyPrice)})`}
+              </Text>
+            )}
+            {price.buyPrice !== product.buyPrice && (
+              <Text style={{ fontSize: font.xs, color: isGoodDeal(price) ? colors.success : isExpensive(price) ? colors.danger : colors.textMuted, marginBottom: 4 }}>
+                {isGoodDeal(price)
+                  ? lang === 'sw' ? `🔥 Bei nafuu leo! Kawaida ${formatTZS(product.buyPrice)}` : `🔥 Cheap today! Usually ${formatTZS(product.buyPrice)}`
+                  : isExpensive(price)
+                  ? lang === 'sw' ? `⚠️ Bei juu leo. Kawaida ${formatTZS(product.buyPrice)}` : `⚠️ Pricey today. Usually ${formatTZS(product.buyPrice)}`
+                  : lang === 'sw' ? `Bei ya kawaida: ${formatTZS(product.buyPrice)}` : `Base price: ${formatTZS(product.buyPrice)}`}
+              </Text>
+            )}
+            <StatRow
+              label={`${lang === 'sw' ? 'Bei ya Kuuza Leo' : "Today's Sell Price"} ${price.sellTrend === 'up' ? '▲' : price.sellTrend === 'down' ? '▼' : ''}`}
+              value={formatTZS(price.sellPrice)}
               highlight
             />
             <StatRow
@@ -197,8 +278,74 @@ const BuyModal: React.FC<BuyModalProps> = ({
             </View>
           </Card>
 
+          {/* Haggling */}
+          {qty >= HAGGLE_MIN_QTY && (
+            <Card alt style={{ borderLeftWidth: 4, borderLeftColor: colors.accent }}>
+              <Text style={styles.qtyLabel}>
+                🤝 {lang === 'sw' ? 'Bembea Bei' : 'Haggle'}
+                {haggle.discount > 0 && !haggle.locked
+                  ? `  ·  −${haggle.discount}%`
+                  : haggle.locked && haggle.discount > 0
+                  ? `  ·  −${haggle.discount}% ✅`
+                  : ''}
+              </Text>
+              {haggle.message && (
+                <Text style={{ fontSize: font.xs, color: colors.text, lineHeight: 18, marginBottom: spacing.sm }}>
+                  {lang === 'sw' ? haggle.message.sw : haggle.message.en}
+                </Text>
+              )}
+              {canHaggle ? (
+                <>
+                  <Text style={{ fontSize: font.xs, color: colors.textMuted, marginBottom: spacing.sm }}>
+                    {lang === 'sw'
+                      ? `Raundi ${haggle.round}/${MAX_ROUNDS} · Sifa yako inasaidia. Ukisukuma sana, atakasirika.`
+                      : `Round ${haggle.round}/${MAX_ROUNDS} · Your reputation helps. Push too hard and they get offended.`}
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                    {([5, 10, 15] as HaggleAsk[]).map((ask) => (
+                      <Button
+                        key={ask}
+                        title={`−${ask}%`}
+                        onPress={() => tryHaggle(ask)}
+                        variant={ask === 15 ? 'danger' : ask === 10 ? 'accent' : 'secondary'}
+                        size="sm"
+                        style={{ flex: 1 }}
+                      />
+                    ))}
+                  </View>
+                </>
+              ) : !haggle.locked ? null : null}
+            </Card>
+          )}
+          {qty < HAGGLE_MIN_QTY && (
+            <Text style={{ fontSize: font.xs, color: colors.textMuted, textAlign: 'center' }}>
+              💬 {lang === 'sw'
+                ? `Nunua vipande ${HAGGLE_MIN_QTY}+ uweze kubembea bei`
+                : `Order ${HAGGLE_MIN_QTY}+ units to unlock haggling`}
+            </Text>
+          )}
+
           {/* Total */}
           <Card style={{ backgroundColor: canAfford && canFit ? '#F0FDF4' : '#FFF1F1' }}>
+            {discount > 0 && (
+              <StatRow
+                label={lang === 'sw' ? `📦 Punguzo la jumla (−${Math.round(discount * 100)}%)` : `📦 Bulk discount (−${Math.round(discount * 100)}%)`}
+                value={`−${formatTZS(qty * (quotedUnit - unitPrice))}`}
+                positive
+              />
+            )}
+            {haggle.discount > 0 && (
+              <StatRow
+                label={lang === 'sw' ? `🤝 Bei ya majadiliano (−${haggle.discount}%)` : `🤝 Haggled price (−${haggle.discount}%)`}
+                value={lang === 'sw' ? 'imejumuishwa' : 'included'}
+                positive
+              />
+            )}
+            {discount === 0 && qty >= 10 && (
+              <Text style={{ color: colors.info, fontSize: font.xs, marginBottom: 4 }}>
+                💡 {lang === 'sw' ? 'Nunua 20+ upate punguzo la 5%' : 'Buy 20+ for a 5% discount'}
+              </Text>
+            )}
             <StatRow
               label={lang === 'sw' ? 'Gharama Jumla' : 'Total Cost'}
               value={formatTZS(total)}
@@ -236,7 +383,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
               ? t('not_enough_cash', lang)
               : t('capacity_full', lang)}
             disabled={!canAfford || !canFit}
-            onPress={() => { onBuy(qty); onClose(); }}
+            onPress={() => { onBuy(qty, haggle.discount); onClose(); }}
             size="lg"
             fullWidth
           />
@@ -275,14 +422,24 @@ export const MarketScreen: React.FC = () => {
     });
   }, [cat, search]);
 
-  const handleBuy = (productId: string, qty: number) => {
+  const quotedFor = (p: Product): number => {
+    const day = dayPriceFor(p, state.day).buyPrice;
+    return Math.round(
+      day * cityBuyFactor(state.currentCityId, p.category) * buyPriceImpact(saturationFor(state, p.id)),
+    );
+  };
+
+  const handleBuy = (productId: string, qty: number, haggleDiscount = 0) => {
     const p = PRODUCTS.find((x) => x.id === productId);
     const name = p ? (lang === 'en' ? p.nameEn : p.name) : '';
-    const res = buyProduct(productId, qty);
+    const res = buyProduct(productId, qty, haggleDiscount);
     if (res.ok) {
+      buzz(state.settings, 'tap');
       toast.success(
         lang === 'sw' ? `${qty}× ${name} imenunuliwa!` : `${qty}× ${name} bought!`,
-        formatTZS(qty * (p?.buyPrice ?? 0)),
+        haggleDiscount > 0
+          ? lang === 'sw' ? `na punguzo la −${haggleDiscount}% 🤝` : `with a −${haggleDiscount}% haggle 🤝`
+          : undefined,
       );
     } else {
       const msg =
@@ -301,7 +458,7 @@ export const MarketScreen: React.FC = () => {
       return;
     }
     if (freeSlots <= 0) { toast.error(t('capacity_full', lang)); return; }
-    if (state.cash < p.buyPrice) { toast.error(t('not_enough_cash', lang)); return; }
+    if (state.cash < quotedFor(p)) { toast.error(t('not_enough_cash', lang)); return; }
     handleBuy(p.id, 1);
   };
 
@@ -333,7 +490,7 @@ export const MarketScreen: React.FC = () => {
       {/* Capacity bar */}
       <View style={styles.capRow}>
         <Text style={styles.capText}>
-          📦 {used}/{cap}
+          {findCity(state.currentCityId)?.emoji} {lang === 'sw' ? findCity(state.currentCityId)?.name : findCity(state.currentCityId)?.nameEn} · 📦 {used}/{cap}
           {freeSlots <= 5 && freeSlots > 0 && (
             <Text style={{ color: colors.warning }}> · {lang === 'sw' ? 'Karibu kujaa!' : 'Almost full!'}</Text>
           )}
@@ -385,10 +542,18 @@ export const MarketScreen: React.FC = () => {
         {visible.map((p) => {
           const locked = p.unlockLevel > state.level;
           const name = lang === 'en' ? p.nameEn : p.name;
-          const { marginPercent } = productMargin(p);
+          const price = dayPriceFor(p, state.day);
+          const marginPercent = price.buyPrice > 0
+            ? Math.round(((price.sellPrice - price.buyPrice) / price.buyPrice) * 100)
+            : 0;
           const insight = getProductInsight(p, lang);
           const owned = ownedQtyMap[p.id] ?? 0;
-          const canAfford = state.cash >= p.buyPrice;
+          const quoted = quotedFor(p);
+          const canAfford = state.cash >= quoted;
+          const deal = isGoodDeal(price);
+          const pricey = isExpensive(price);
+          const seasonBoost = seasonBoostFor(state.day, p.category);
+          const satLevel = saturationLevel(saturationFor(state, p.id));
 
           return (
             <TouchableOpacity
@@ -410,11 +575,40 @@ export const MarketScreen: React.FC = () => {
 
               <Text style={styles.productEmoji}>{p.emoji}</Text>
               <Text style={styles.productName} numberOfLines={2}>{name}</Text>
-              <Text style={[styles.productPrice, !canAfford && !locked && { color: colors.danger }]}>
-                {formatTZS(p.buyPrice)}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={[styles.productPrice, !canAfford && !locked && { color: colors.danger }]}>
+                  {formatTZS(quoted)}
+                </Text>
+                {price.buyTrend !== 'flat' && (
+                  <Text style={{ fontSize: font.xs, fontWeight: '900', color: price.buyTrend === 'down' ? colors.success : colors.danger }}>
+                    {price.buyTrend === 'down' ? '▼' : '▲'}
+                  </Text>
+                )}
+              </View>
 
               <View style={styles.pillRow}>
+                {seasonBoost > 0 && (
+                  <Pill
+                    label={`${seasonForDay(state.day).emoji} +${Math.round(seasonBoost * 100)}%`}
+                    bg={colors.info + '22'}
+                    color={colors.info}
+                  />
+                )}
+                {deal && (
+                  <Pill label={lang === 'sw' ? '🔥 Ofa' : '🔥 Deal'} bg={colors.success + '28'} color={colors.success} />
+                )}
+                {pricey && (
+                  <Pill label={lang === 'sw' ? '💸 Ghali' : '💸 High'} bg={colors.danger + '22'} color={colors.danger} />
+                )}
+                {satLevel !== 'none' && (
+                  <Pill
+                    label={satLevel === 'hot'
+                      ? lang === 'sw' ? '🌊 Soko limejaa' : '🌊 Flooded'
+                      : lang === 'sw' ? '〰️ Inajaa' : '〰️ Saturating'}
+                    bg={colors.warning + '22'}
+                    color={colors.warning}
+                  />
+                )}
                 <Pill
                   label={t(`demand_${p.demand}`, lang)}
                   bg={demandColor[p.demand] + '28'}
@@ -462,8 +656,11 @@ export const MarketScreen: React.FC = () => {
       {selected && (
         <BuyModal
           product={selected}
+          price={dayPriceFor(selected, state.day)}
+          quotedUnit={quotedFor(selected)}
+          reputation={state.reputation}
           onClose={() => setSelected(null)}
-          onBuy={(qty) => handleBuy(selected.id, qty)}
+          onBuy={(qty, haggleDiscount) => handleBuy(selected.id, qty, haggleDiscount)}
           freeSlots={freeSlots}
           cash={state.cash}
           ownedQty={ownedQtyMap[selected.id] ?? 0}

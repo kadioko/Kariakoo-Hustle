@@ -57,6 +57,12 @@ export function checkAchievements(state: GameState): AchievementUnlockResult {
       case 'level_at_least':
         pass = next.level >= c.value;
         break;
+      case 'streak_at_least':
+        pass = next.bestStreak >= c.value;
+        break;
+      case 'day_at_least':
+        pass = next.day >= c.value;
+        break;
     }
     if (pass) {
       newlyUnlocked.push(a.id);

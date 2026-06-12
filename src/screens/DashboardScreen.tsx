@@ -18,7 +18,7 @@ import {
 import { xpForLevel } from '@/game/progression';
 import { findLocation } from '@/data/locations';
 import { LOCATIONS } from '@/data/locations';
-import { EVENTS } from '@/data/events';
+import { findEvent } from '@/data/events';
 import { PRODUCTS } from '@/data/products';
 import { WORKERS } from '@/data/workers';
 import { UPGRADES } from '@/data/upgrades';
@@ -31,6 +31,10 @@ import { RootStackParamList } from '@/navigation/AppNavigator';
 import { businessAdvisorWarnings } from '@/game/advisor';
 import { tutorialProgressPercent, tutorialSteps } from '@/game/tutorial';
 import { weeklyGoalProgress } from '@/game/weeklyGoals';
+import { daysLeftInSeason, seasonForDay } from '@/game/seasons';
+import { leaderboard, playerRank } from '@/game/rivals';
+import { currentChapter, goalProgress } from '@/game/story';
+import { findCity } from '@/game/cities';
 
 // Animated cash number
 function AnimatedCash({ value }: { value: number }) {
@@ -121,9 +125,7 @@ export const DashboardScreen: React.FC = () => {
   const loanBalance = state.loans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
   const runwayDays = expenses.total > 0 ? Math.floor(state.cash / expenses.total) : 99;
 
-  const pendingEvent = state.pendingEventId
-    ? EVENTS.find((e) => e.id === state.pendingEventId)
-    : null;
+  const pendingEvent = state.pendingEventId ? findEvent(state.pendingEventId) : null;
   const nextProduct = [...PRODUCTS]
     .filter((p) => p.unlockLevel > state.level)
     .sort((a, b) => a.unlockLevel - b.unlockLevel || a.buyPrice - b.buyPrice)[0];
@@ -141,6 +143,13 @@ export const DashboardScreen: React.FC = () => {
   const tutorialPct = tutorialProgressPercent(state);
   const advisorWarnings = businessAdvisorWarnings(state);
   const activeWeeklyGoals = state.weeklyGoals.filter((goal) => state.day >= goal.startDay && state.day <= goal.endDay);
+  const season = seasonForDay(state.day);
+  const seasonDaysLeft = daysLeftInSeason(state.day);
+  const board = leaderboard(state);
+  const rank = playerRank(state);
+  const chapter = currentChapter(state);
+  const chapterPct = chapter ? Math.round(goalProgress(state, chapter.goal) * 100) : 100;
+  const city = findCity(state.currentCityId);
   const savedLabel = saveStatus === 'saving'
     ? (lang === 'sw' ? 'Inahifadhi...' : 'Saving...')
     : saveStatus === 'error'
@@ -156,10 +165,16 @@ export const DashboardScreen: React.FC = () => {
         <View style={styles.banner}>
           <View style={{ flex: 1 }}>
             <Text style={styles.bannerDay}>
-              {t('day', lang)} {state.day} · {location?.emoji} {lang === 'sw' ? location?.name : location?.nameEn}
+              {t('day', lang)} {state.day} · {city?.emoji} {lang === 'sw' ? city?.name : city?.nameEn} · {location?.emoji} {lang === 'sw' ? location?.name : location?.nameEn}
             </Text>
             <Text style={styles.bannerBiz}>{state.businessName}</Text>
           </View>
+          {state.legacyLevel > 0 && (
+            <View style={[styles.levelBadge, { marginRight: 6, backgroundColor: '#FFFFFF22' }]}>
+              <Text style={styles.levelNum}>🏛️</Text>
+              <Text style={styles.levelVal}>{state.legacyLevel}</Text>
+            </View>
+          )}
           <View style={styles.levelBadge}>
             <Text style={styles.levelNum}>L</Text>
             <Text style={styles.levelVal}>{state.level}</Text>
@@ -174,6 +189,11 @@ export const DashboardScreen: React.FC = () => {
             <Text style={styles.cashNW}>
               🌐 {t('net_worth', lang)}: {formatTZS(nw)}
             </Text>
+            {state.streak >= 2 && (
+              <Text style={styles.streakText}>
+                🔥 {lang === 'sw' ? `Mfululizo: siku ${state.streak}` : `Streak: ${state.streak} days`}
+              </Text>
+            )}
           </View>
           <View style={styles.healthWrap}>
             <Text style={styles.healthLabel}>
@@ -221,6 +241,95 @@ export const DashboardScreen: React.FC = () => {
               ))}
             </Card>
           )}
+
+          {/* Story chapter */}
+          {chapter && (
+            <Card alt style={{ borderLeftWidth: 4, borderLeftColor: colors.primary }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
+                <Text style={{ fontSize: 30 }}>{chapter.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sectionLabel}>
+                    📖 {lang === 'sw' ? chapter.title : chapter.titleEn}
+                  </Text>
+                  <Text style={{ fontSize: font.xs, color: colors.textMuted, fontStyle: 'italic', marginTop: 2 }}>
+                    — {lang === 'sw' ? chapter.character : chapter.characterEn}
+                  </Text>
+                  <Text style={{ fontSize: font.xs, color: colors.text, lineHeight: 18, marginTop: spacing.sm }}>
+                    {lang === 'sw' ? chapter.narrative : chapter.narrativeEn}
+                  </Text>
+                  <View style={{ marginTop: spacing.sm }}>
+                    <ProgressBar value={chapterPct} max={100} height={8} color={colors.primary} />
+                    <Text style={{ fontSize: font.xs, color: colors.textMuted, marginTop: 4 }}>
+                      🎯 {lang === 'sw' ? chapter.goalText : chapter.goalTextEn} · {chapterPct}%
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </Card>
+          )}
+
+          {/* Season banner */}
+          <Card alt style={{ borderLeftWidth: 4, borderLeftColor: colors.info }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              <Text style={{ fontSize: 30 }}>{season.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionLabel}>
+                  {lang === 'sw' ? season.name : season.nameEn}
+                  {'  '}
+                  <Text style={{ color: colors.textMuted, fontWeight: '400' }}>
+                    · {seasonDaysLeft} {lang === 'sw' ? 'siku zimebaki' : seasonDaysLeft === 1 ? 'day left' : 'days left'}
+                  </Text>
+                </Text>
+                <Text style={{ fontSize: font.xs, color: colors.textMuted, lineHeight: 17, marginTop: 2 }}>
+                  {lang === 'sw' ? season.description : season.descriptionEn}
+                </Text>
+              </View>
+            </View>
+          </Card>
+
+          {/* Rivals leaderboard */}
+          <Card>
+            <Text style={styles.sectionLabel}>
+              {lang === 'sw' ? '🏁 Mashindano ya Mtaa' : '🏁 Street Rankings'}
+              {'  '}
+              <Text style={{ color: rank === 1 ? colors.success : colors.textMuted }}>
+                {lang === 'sw' ? `Nafasi ya ${rank}` : `Rank #${rank}`}
+              </Text>
+            </Text>
+            {board.map((entry, i) => (
+              <View
+                key={entry.id}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  paddingVertical: 4,
+                  backgroundColor: entry.isPlayer ? colors.primaryLight + '18' : 'transparent',
+                  borderRadius: 8,
+                  paddingHorizontal: entry.isPlayer ? 6 : 0,
+                }}
+              >
+                <Text style={{ fontSize: font.sm, fontWeight: '800', color: colors.textMuted, width: 22 }}>
+                  {i + 1}.
+                </Text>
+                <Text style={{ fontSize: 16 }}>{entry.emoji}</Text>
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: font.sm,
+                    fontWeight: entry.isPlayer ? '900' : '600',
+                    color: entry.isPlayer ? colors.primary : colors.text,
+                  }}
+                  numberOfLines={1}
+                >
+                  {entry.isPlayer ? `${entry.name} (${lang === 'sw' ? 'Wewe' : 'You'})` : entry.name}
+                </Text>
+                <Text style={{ fontSize: font.xs, fontWeight: '700', color: colors.textMuted }}>
+                  {formatTZS(entry.worth)}
+                </Text>
+              </View>
+            ))}
+          </Card>
 
           {advisorWarnings.length > 0 && (
             <Card>
@@ -557,6 +666,7 @@ const styles = StyleSheet.create({
   cashLabel: { color: colors.textMuted, fontSize: font.xs, fontWeight: '700', letterSpacing: 0.5 },
   cashAmount: { color: colors.primaryDark, fontSize: 30, fontWeight: '900', marginTop: 2 },
   cashNW: { color: colors.textMuted, fontSize: font.xs, marginTop: 4 },
+  streakText: { color: colors.accentDark, fontSize: font.xs, fontWeight: '800', marginTop: 4 },
   healthWrap: { alignItems: 'center', gap: 4 },
   healthLabel: { color: colors.textMuted, fontSize: font.xs, fontWeight: '600' },
   healthRing: {

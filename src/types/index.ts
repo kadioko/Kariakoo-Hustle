@@ -148,7 +148,9 @@ export type AchievementCondition =
   | { type: 'workers_at_least'; value: number }
   | { type: 'locations_at_least'; value: number }
   | { type: 'upgrades_at_least'; value: number }
-  | { type: 'level_at_least'; value: number };
+  | { type: 'level_at_least'; value: number }
+  | { type: 'streak_at_least'; value: number }
+  | { type: 'day_at_least'; value: number };
 
 export interface Achievement {
   id: string;
@@ -220,6 +222,9 @@ export interface DailyReport {
   eventEffectText?: string;
   eventEffectTextEn?: string;
   missionResults?: MissionResult[];
+  streak?: number;
+  streakBonus?: number;
+  propertyIncome?: number;
   advice: string;
   adviceEn: string;
 }
@@ -290,4 +295,20 @@ export interface GameState {
   settings: Settings;
   hasMadeFirstSale: boolean;
   pendingEventId?: string;
+  streak: number;
+  bestStreak: number;
+  /** Number of times the player has prestiged */
+  legacyLevel: number;
+  /** Day each worker was hired, for tenure bonuses */
+  workerHiredOnDay: Record<string, number>;
+  /** Which city the player is currently trading in */
+  currentCityId: string;
+  /** Recent units bought per product — your demand moves prices */
+  marketSaturation: Record<string, number>;
+  /** Owned properties (stalls, warehouses, buildings) */
+  ownedProperties: string[];
+  /** Completed story chapter ids */
+  completedStoryIds: string[];
+  /** Read financial literacy lesson ids */
+  readLessonIds: string[];
 }

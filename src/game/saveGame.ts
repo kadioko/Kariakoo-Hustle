@@ -3,7 +3,12 @@ import { generateDailyMissions } from './missions';
 import { generateWeeklyGoals } from './weeklyGoals';
 import { STARTING_CASH } from './economy';
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 9;
+
+/** Returns a finite, safe number or the fallback (guards against NaN/Infinity in corrupt saves). */
+function safeNumber(v: unknown, fallback: number): number {
+  return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+}
 
 export function createInitialState(): GameState {
   return {
@@ -34,6 +39,15 @@ export function createInitialState(): GameState {
     totalClearanceRevenue: 0,
     totalClearanceLoss: 0,
     productSalesCount: {},
+    streak: 0,
+    bestStreak: 0,
+    legacyLevel: 0,
+    workerHiredOnDay: {},
+    currentCityId: 'dar',
+    marketSaturation: {},
+    ownedProperties: [],
+    completedStoryIds: [],
+    readLessonIds: [],
     settings: {
       language: 'sw',
       sound: true,
@@ -52,6 +66,37 @@ export function normalizeGameState(raw: Partial<GameState> | null | undefined): 
     ...raw,
     saveVersion: SAVE_VERSION,
     businessName: raw.businessName?.trim() || initial.businessName,
+    cash: Math.max(0, safeNumber(raw.cash, initial.cash)),
+    day: Math.max(1, Math.round(safeNumber(raw.day, initial.day))),
+    level: Math.max(1, Math.round(safeNumber(raw.level, initial.level))),
+    xp: Math.max(0, safeNumber(raw.xp, initial.xp)),
+    reputation: Math.max(-10, Math.min(100, safeNumber(raw.reputation, initial.reputation))),
+    totalRevenue: safeNumber(raw.totalRevenue, initial.totalRevenue),
+    totalExpenses: safeNumber(raw.totalExpenses, initial.totalExpenses),
+    totalProfit: safeNumber(raw.totalProfit, initial.totalProfit),
+    streak: Math.max(0, Math.round(safeNumber(raw.streak, 0))),
+    bestStreak: Math.max(0, Math.round(safeNumber(raw.bestStreak, 0))),
+    legacyLevel: Math.max(0, Math.round(safeNumber(raw.legacyLevel, 0))),
+    workerHiredOnDay:
+      raw.workerHiredOnDay && typeof raw.workerHiredOnDay === 'object'
+        ? raw.workerHiredOnDay
+        : initial.workerHiredOnDay,
+    currentCityId: typeof raw.currentCityId === 'string' && raw.currentCityId
+      ? raw.currentCityId
+      : initial.currentCityId,
+    marketSaturation:
+      raw.marketSaturation && typeof raw.marketSaturation === 'object'
+        ? raw.marketSaturation
+        : initial.marketSaturation,
+    ownedProperties: Array.isArray(raw.ownedProperties)
+      ? raw.ownedProperties
+      : initial.ownedProperties,
+    completedStoryIds: Array.isArray(raw.completedStoryIds)
+      ? raw.completedStoryIds
+      : initial.completedStoryIds,
+    readLessonIds: Array.isArray(raw.readLessonIds)
+      ? raw.readLessonIds
+      : initial.readLessonIds,
     inventory: Array.isArray(raw.inventory) ? raw.inventory : initial.inventory,
     upgrades: Array.isArray(raw.upgrades) ? raw.upgrades : initial.upgrades,
     workers: Array.isArray(raw.workers) ? raw.workers : initial.workers,

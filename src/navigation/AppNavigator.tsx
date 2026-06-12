@@ -19,6 +19,10 @@ import { ReportScreen } from '@/screens/ReportScreen';
 import { AchievementsScreen } from '@/screens/AchievementsScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { MonetizationScreen } from '@/screens/MonetizationScreen';
+import { BankScreen } from '@/screens/BankScreen';
+import { TravelScreen } from '@/screens/TravelScreen';
+import { PropertyScreen } from '@/screens/PropertyScreen';
+import { LessonsScreen } from '@/screens/LessonsScreen';
 import { useGame } from '@/state/GameContext';
 import { t } from '@/utils/i18n';
 import { colors } from '@/theme';
@@ -35,6 +39,10 @@ export type RootStackParamList = {
   Achievements: undefined;
   Settings: undefined;
   Monetization: undefined;
+  Bank: undefined;
+  Travel: undefined;
+  Property: undefined;
+  Lessons: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -134,6 +142,10 @@ export function AppNavigator() {
         <Stack.Screen name="Achievements" component={AchievementsScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="Monetization" component={MonetizationScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Bank" component={BankScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Travel" component={TravelScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Property" component={PropertyScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Lessons" component={LessonsScreen} options={{ animation: 'slide_from_right' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

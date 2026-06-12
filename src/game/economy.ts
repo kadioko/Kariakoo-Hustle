@@ -3,6 +3,7 @@ import { findProduct } from '@/data/products';
 import { findLocation } from '@/data/locations';
 import { UPGRADES } from '@/data/upgrades';
 import { WORKERS } from '@/data/workers';
+import { ownsRentFreeFor, propertyCapacityBonus, totalPropertyValue } from './property';
 
 export const STARTING_CASH = 50000;
 export const BASE_INVENTORY_CAPACITY = 30;
@@ -31,6 +32,7 @@ export function inventoryCapacity(state: GameState): number {
     const u = UPGRADES.find((x) => x.id === id);
     if (u?.effects.inventoryCapacityBonus) cap += u.effects.inventoryCapacityBonus;
   });
+  cap += propertyCapacityBonus(state);
   return cap;
 }
 
@@ -57,7 +59,8 @@ export function netWorth(state: GameState): number {
     state.cash +
     inventoryValue(state) +
     totalUpgradeValue(state) +
-    totalLocationValue(state) -
+    totalLocationValue(state) +
+    totalPropertyValue(state) -
     totalLoanBalance(state),
   );
 }
@@ -73,7 +76,8 @@ export interface DailyExpenses {
 
 export function calcDailyExpenses(state: GameState): DailyExpenses {
   const loc = findLocation(state.currentLocationId);
-  let rent = loc?.dailyRent ?? 0;
+  // Owning your spot means no rent
+  let rent = ownsRentFreeFor(state, state.currentLocationId) ? 0 : loc?.dailyRent ?? 0;
   // Transport scales gently: 1,500 base + 300 per level (not 500)
   let transport = 1500 + state.level * 300;
   let workerSalary = state.workers.reduce((sum, id) => {
@@ -123,14 +127,25 @@ export function settleDailyLoans(state: GameState): GameState {
   return { ...state, loans };
 }
 
+/** Bulk buying discount: 20+ units → 5%, 50+ units → 10%. */
+export function bulkDiscountRate(qty: number): number {
+  if (qty >= 50) return 0.1;
+  if (qty >= 20) return 0.05;
+  return 0;
+}
+
 const CLEARANCE_RATE: Record<Risk, number> = {
   low: 0.78,
   medium: 0.68,
   high: 0.58,
 };
 
-export function clearanceUnitPrice(product: Product, unitCost: number): number {
-  const discountedSellPrice = Math.round(product.sellPrice * CLEARANCE_RATE[product.risk]);
+export function clearanceUnitPrice(
+  product: Product,
+  unitCost: number,
+  sellPrice: number = product.sellPrice,
+): number {
+  const discountedSellPrice = Math.round(sellPrice * CLEARANCE_RATE[product.risk]);
   const floorPrice = Math.round(unitCost * 0.5);
   return Math.max(floorPrice, discountedSellPrice);
 }

@@ -68,6 +68,46 @@ const ReportItem: React.FC<{ r: DailyReport; lang: 'sw' | 'en' }> = ({ r, lang }
   );
 };
 
+// Mini bar chart of the last 7 days' net profit (pure Views, no deps)
+const ProfitChart: React.FC<{ reports: DailyReport[]; lang: 'sw' | 'en' }> = ({ reports, lang }) => {
+  const last7 = reports.slice(0, 7).reverse(); // oldest → newest
+  if (last7.length < 2) return null;
+  const maxAbs = Math.max(...last7.map((r) => Math.abs(r.netProfit)), 1);
+
+  return (
+    <Card>
+      <Text style={styles.sectionTitle}>
+        📈 {lang === 'sw' ? 'Faida — Siku 7 Zilizopita' : 'Profit — Last 7 Days'}
+      </Text>
+      <View style={styles.chartRow}>
+        {last7.map((r) => {
+          const profitable = r.netProfit >= 0;
+          const h = Math.max(4, Math.round((Math.abs(r.netProfit) / maxAbs) * 64));
+          return (
+            <View key={r.day} style={styles.chartCol}>
+              <View style={styles.chartBarArea}>
+                <View
+                  style={[
+                    styles.chartBar,
+                    {
+                      height: h,
+                      backgroundColor: profitable ? colors.success : colors.danger,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.chartDay}>{r.day}</Text>
+            </View>
+          );
+        })}
+      </View>
+      <Text style={styles.chartHint}>
+        {lang === 'sw' ? 'Kijani = faida · Nyekundu = hasara' : 'Green = profit · Red = loss'}
+      </Text>
+    </Card>
+  );
+};
+
 export const ReportScreen: React.FC = () => {
   const nav = useNavigation<any>();
   const { state, language, markReportViewed } = useGame();
@@ -89,6 +129,7 @@ export const ReportScreen: React.FC = () => {
       <Button title={`← ${t('back', lang)}`} onPress={() => nav.goBack()} variant="ghost" size="sm" style={{ alignSelf: 'flex-start', marginLeft: spacing.lg }} />
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
+        <ProfitChart reports={state.reports} lang={lang} />
         <Card>
           <Text style={styles.sectionTitle}>{lang === 'sw' ? 'Takwimu Zote' : 'All-Time Stats'}</Text>
           <StatRow label={t('total_revenue', lang)} value={formatTZS(state.totalRevenue)} highlight />
@@ -177,6 +218,12 @@ export const ReportScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   sectionTitle: { fontSize: font.md, fontWeight: '800', color: colors.text, marginBottom: spacing.sm },
+  chartRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, marginTop: spacing.sm },
+  chartCol: { flex: 1, alignItems: 'center', gap: 4 },
+  chartBarArea: { height: 68, justifyContent: 'flex-end', width: '100%', alignItems: 'center' },
+  chartBar: { width: '70%', borderRadius: 4, minWidth: 10 },
+  chartDay: { fontSize: font.xs, color: colors.textMuted, fontWeight: '700' },
+  chartHint: { fontSize: font.xs, color: colors.textMuted, marginTop: spacing.sm, textAlign: 'center' },
   sectionLabel: { fontSize: font.sm, fontWeight: '700', color: colors.textMuted },
   reportItem: {
     borderLeftWidth: 4,

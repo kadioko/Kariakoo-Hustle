@@ -23,6 +23,8 @@ import { Button } from '@/components/Button';
 import { StatRow } from '@/components/StatRow';
 import { ProgressBar } from '@/components/ProgressBar';
 import { Pill } from '@/components/Pill';
+import { buzz } from '@/utils/haptics';
+import { streakEmoji } from '@/game/streaks';
 
 type Phase = 'idle' | 'selling' | 'event' | 'result';
 
@@ -83,6 +85,32 @@ function SellingAnimation({ onDone }: { onDone: () => void }) {
   );
 }
 
+// Result hero juice: spring-pop on profit, shake on loss
+function HeroPop({ profitable, children }: { profitable: boolean; children: React.ReactNode }) {
+  const scale = useRef(new Animated.Value(0.5)).current;
+  const shake = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(scale, { toValue: 1, friction: 4, tension: 80, useNativeDriver: true }).start();
+    if (!profitable) {
+      Animated.sequence([
+        Animated.delay(250),
+        Animated.timing(shake, { toValue: 9, duration: 55, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: -9, duration: 55, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: 6, duration: 55, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: -4, duration: 55, useNativeDriver: true }),
+        Animated.timing(shake, { toValue: 0, duration: 55, useNativeDriver: true }),
+      ]).start();
+    }
+  }, []);
+
+  return (
+    <Animated.View style={{ alignItems: 'center', transform: [{ scale }, { translateX: shake }] }}>
+      {children}
+    </Animated.View>
+  );
+}
+
 export const SellScreen: React.FC = () => {
   const nav = useNavigation<any>();
   const { state, language, endDay, applyChoice, dismissEvent } = useGame();
@@ -103,6 +131,31 @@ export const SellScreen: React.FC = () => {
   const onSellingDone = () => {
     const outcome = endDay();
     setReport(outcome.report);
+
+    buzz(state.settings, outcome.report.netProfit >= 0 ? 'success' : 'error');
+    if (outcome.newlyUnlockedAchievements.length > 0 || outcome.levelsGained > 0) {
+      buzz(state.settings, 'achievement');
+    }
+
+    if (outcome.completedStoryChapter) {
+      const ch = outcome.completedStoryChapter;
+      toast.achievement(
+        lang === 'sw' ? `📖 Sura imekamilika: ${ch.title}` : `📖 Chapter complete: ${ch.titleEn}`,
+        lang === 'sw'
+          ? `${ch.character} anajivunia wewe.`
+          : `${ch.characterEn} is proud of you.`,
+      );
+    }
+
+    if (outcome.levelsGained > 0) {
+      const newLevel = state.level + outcome.levelsGained;
+      toast.achievement(
+        lang === 'sw' ? `🎉 Level ${newLevel}!` : `🎉 Level ${newLevel}!`,
+        lang === 'sw'
+          ? 'Biashara yako imekua. Bidhaa na maboresho mapya yanaweza kufunguka.'
+          : 'Your business grew. New products and upgrades may have unlocked.',
+      );
+    }
 
     // Toast achievements
     outcome.newlyUnlockedAchievements.forEach((id) => {
@@ -195,9 +248,11 @@ export const SellScreen: React.FC = () => {
           {/* Hero header */}
           <View style={[styles.reportHero, { backgroundColor: profitable ? colors.primary : colors.danger }]}>
             <Text style={styles.reportHeroDay}>{t('day', lang)} {report.day}</Text>
-            <Text style={styles.reportHeroEmoji}>{profitable ? '🤑' : '😓'}</Text>
-            <Text style={styles.reportHeroNet}>{profitable ? '+' : ''}{formatTZS(report.netProfit)}</Text>
-            <Text style={styles.reportHeroLabel}>{t('net_profit', lang)}</Text>
+            <HeroPop profitable={profitable}>
+              <Text style={styles.reportHeroEmoji}>{profitable ? '🤑' : '😓'}</Text>
+              <Text style={styles.reportHeroNet}>{profitable ? '+' : ''}{formatTZS(report.netProfit)}</Text>
+              <Text style={styles.reportHeroLabel}>{t('net_profit', lang)}</Text>
+            </HeroPop>
             <View style={styles.reportQuickRow}>
               <View style={styles.reportQuickItem}>
                 <Text style={styles.reportQuickVal}>{formatTZS(report.revenue)}</Text>
@@ -217,6 +272,23 @@ export const SellScreen: React.FC = () => {
           </View>
 
           <View style={{ padding: spacing.lg, gap: spacing.md }}>
+            {(report.streak ?? 0) >= 2 && (
+              <Card alt style={{ borderLeftWidth: 4, borderLeftColor: colors.accent }}>
+                <Text style={styles.sectionTitle}>
+                  {streakEmoji(report.streak ?? 0)}{' '}
+                  {lang === 'sw'
+                    ? `Mfululizo wa siku ${report.streak} za faida!`
+                    : `${report.streak}-day profit streak!`}
+                </Text>
+                {(report.streakBonus ?? 0) > 0 && (
+                  <Text style={{ color: colors.textMuted, fontSize: font.sm, lineHeight: 20 }}>
+                    {lang === 'sw'
+                      ? `Bonasi ya mfululizo: +${formatTZS(report.streakBonus ?? 0)}`
+                      : `Streak bonus: +${formatTZS(report.streakBonus ?? 0)}`}
+                  </Text>
+                )}
+              </Card>
+            )}
             {report.unitsSold >= 10 && (
               <Card alt style={{ borderLeftWidth: 4, borderLeftColor: colors.accent }}>
                 <Text style={styles.sectionTitle}>
@@ -247,6 +319,13 @@ export const SellScreen: React.FC = () => {
               <View style={styles.divider} />
               <StatRow label={t('gross_profit', lang)} value={formatTZS(report.grossProfit)} positive={report.grossProfit >= 0} negative={report.grossProfit < 0} />
               <StatRow label={t('expenses', lang)} value={`−${formatTZS(report.expenses)}`} negative />
+              {(report.propertyIncome ?? 0) > 0 && (
+                <StatRow
+                  label={lang === 'sw' ? '🏠 Kipato cha Mali' : '🏠 Property Income'}
+                  value={`+${formatTZS(report.propertyIncome ?? 0)}`}
+                  positive
+                />
+              )}
               <View style={styles.divider} />
               <StatRow
                 label={t('net_profit', lang)}

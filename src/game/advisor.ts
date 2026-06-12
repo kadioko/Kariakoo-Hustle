@@ -27,6 +27,19 @@ export function businessAdvisorWarnings(state: GameState): AdvisorWarning[] {
   }, 0);
   const lastReport = state.reports[0];
 
+  // Bankruptcy rescue: broke with nothing to sell — point to the bank
+  if (state.cash < 5000 && stockUnits === 0) {
+    warnings.push({
+      id: 'broke_rescue',
+      title: 'Mtaji umeisha — tembelea benki',
+      titleEn: 'Out of capital — visit the bank',
+      body: 'Huna mzigo wala hela ya kununua. Chukua mkopo mdogo (Zaidi → Benki) uanze upya mzunguko.',
+      bodyEn: 'No stock and no cash to buy any. Take a small loan (More → Bank) to restart your cycle.',
+      tone: 'danger',
+      emoji: '🏦',
+    });
+  }
+
   if (runwayDays < 4) {
     warnings.push({
       id: 'low_cash',
