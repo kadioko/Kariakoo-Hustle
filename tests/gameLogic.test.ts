@@ -6,7 +6,15 @@ import { applyXp, xpForLevel } from '../src/game/progression';
 import { generateDailyMissions } from '../src/game/missions';
 import { findCashCheat, normalizeCheatCode } from '../src/game/cheats';
 import { buyUpgradeAction, hireWorkerAction, unlockLocationAction } from '../src/game/businessActions';
-import { ADS_ENABLED, COSMETIC_THEMES, REWARDED_AD_OPTIONS } from '../src/data/monetization';
+import {
+  ADS_ENABLED,
+  COSMETIC_THEMES,
+  INTERSTITIALS_ENABLED,
+  INTERSTITIAL_POLICY,
+  PREMIUM_ENABLED,
+  PREMIUM_ROADMAP,
+  REWARDED_AD_OPTIONS,
+} from '../src/data/monetization';
 import { tutorialProgressPercent, tutorialSteps } from '../src/game/tutorial';
 import { businessAdvisorWarnings } from '../src/game/advisor';
 import { generateWeeklyGoals, weeklyGoalProgress } from '../src/game/weeklyGoals';
@@ -130,9 +138,19 @@ test('location unlock switches current location and charges unlock cost', () => 
 
 test('monetization placeholders stay fair and disabled', () => {
   assert.equal(ADS_ENABLED, false);
+  assert.equal(INTERSTITIALS_ENABLED, false);
+  assert.equal(PREMIUM_ENABLED, false);
   assert.deepEqual(
     REWARDED_AD_OPTIONS.map((option) => option.id),
-    ['daily_bonus', 'bad_event_recovery', 'speed_selling', 'supplier_tip'],
+    ['double_daily_profit', 'market_insider_tip', 'speed_delivery', 'bad_trade_recovery'],
+  );
+  assert.deepEqual(
+    INTERSTITIAL_POLICY.map((option) => option.id),
+    ['rare_interstitials', 'safe_moments_only'],
+  );
+  assert.deepEqual(
+    PREMIUM_ROADMAP.map((option) => option.id),
+    ['premium_no_ads', 'paid_expansion_packs'],
   );
   assert.deepEqual(
     COSMETIC_THEMES.map((theme) => theme.id),

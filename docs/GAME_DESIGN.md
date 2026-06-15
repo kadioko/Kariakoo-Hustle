@@ -102,13 +102,15 @@ Avoid overly formal or classroom-style copy unless it is inside a report/advice 
 
 ## Monetization Guardrails
 
-Ads can be added later, but the game should remain fair:
+Ads can be added later, but the game should feel premium and remain fair:
 
-- Rewarded ad to double a small daily bonus
-- Rewarded ad to soften a bad event once
-- Rewarded ad to speed up selling animation
-- Rewarded ad to give a small supplier tip
+- Rewarded ad to double an eligible daily profit bonus with a cap
+- Rewarded ad to get a market insider tip
+- Rewarded ad to speed up delivery or selling presentation
+- Rewarded ad to recover part of a bad trade
+- Very few interstitials, never during important business decisions
 - Cosmetic shop themes
 - Remove ads option only if ads are implemented
+- Paid expansion packs can add content later, but never short-cut business learning
 
 Current placeholder themes are Kariakoo Classic, Modern Duka, Wholesale Boss, and Zanzibar Branch. These should stay cosmetic only. Do not add gambling, betting, cash-out, real-money reward mechanics, or paid boosts that replace learning cash flow.

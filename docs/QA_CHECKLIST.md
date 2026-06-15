@@ -46,7 +46,10 @@ Use this checklist before each Android demo or release candidate.
 - Tap the version/build line 7 times and confirm the secret menu opens.
 - Apply `KARIOO50K`, `KARIOO2M5`, and `EMPIRE30M` on separate reset runs and confirm cash/net worth changes correctly.
 - Open Rewards & Themes and confirm rewarded ad buttons are disabled.
+- Confirm the four rewarded ad placeholders are: daily profit, market insider tip, speed delivery, and bad trade recovery.
+- Confirm interstitial copy says ads should be very rare and only in safe moments.
 - Confirm Remove Ads is not shown as a purchase option while ads are disabled.
+- Confirm Premium No-Ads and Expansion Packs are marked as later/disabled roadmap items.
 - Confirm cosmetic themes are visible as placeholders only and do not change gameplay balance.
 
 ## Save, Load, And Migration

@@ -8,7 +8,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "tsc": "tsc --noEmit",
-    "test": "tsx -r tsconfig-paths/register --test tests"
+    "test": "tsx -r tsconfig-paths/register --test tests/**/*.test.ts"
   },
   "dependencies": {
     "@expo/metro-runtime": "~3.2.3",

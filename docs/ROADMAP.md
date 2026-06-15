@@ -218,10 +218,12 @@ Goal: Prepare optional monetization without hurting trust.
 
 - Placeholder UI for rewarded ads exists but is disabled until the game is fun.
 - Fair rewarded ad options are defined:
-  - Double a small daily bonus
-  - Recover part of a bad event
-  - Speed up selling animation
-  - Get a small supplier tip
+  - Double an eligible daily profit bonus with a cap
+  - Get a market insider tip
+  - Speed up delivery or selling presentation
+  - Recover part of a bad trade
+- Interstitial policy is defined: very few, safe moments only, never during important business decisions.
+- Premium roadmap is defined for no-ads and paid expansion packs, both disabled until ads/content systems exist.
 - Cosmetic shop themes are defined:
   - Kariakoo Classic
   - Modern Duka
@@ -234,6 +236,7 @@ Goal: Prepare optional monetization without hurting trust.
 - Validate with players that the core loop is fun before enabling any ad SDK.
 - Decide which rewarded ad options should ship first.
 - Add real cosmetic theme switching only after the base UI is stable.
+- Design paid expansion packs around new cities, products, and story events rather than progression boosts.
 - Keep avoiding pay-to-win boosts that break business learning.
 
 ### Acceptance Criteria

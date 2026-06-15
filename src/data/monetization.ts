@@ -9,6 +9,26 @@ export interface RewardedAdOption {
   emoji: string;
 }
 
+export interface InterstitialPolicy {
+  id: string;
+  title: string;
+  titleEn: string;
+  description: string;
+  descriptionEn: string;
+  emoji: string;
+}
+
+export interface PremiumRoadmapOption {
+  id: string;
+  title: string;
+  titleEn: string;
+  description: string;
+  descriptionEn: string;
+  fairnessNote: string;
+  fairnessNoteEn: string;
+  emoji: string;
+}
+
 export interface CosmeticTheme {
   id: string;
   name: string;
@@ -20,47 +40,91 @@ export interface CosmeticTheme {
 }
 
 export const ADS_ENABLED = false;
+export const INTERSTITIALS_ENABLED = false;
+export const PREMIUM_ENABLED = false;
 
 export const REWARDED_AD_OPTIONS: RewardedAdOption[] = [
   {
-    id: 'daily_bonus',
-    title: 'Ongeza Bonus Ndogo ya Siku',
-    titleEn: 'Double a Small Daily Bonus',
-    description: 'Reward ndogo baada ya siku nzuri, si faida yote ya biashara.',
-    descriptionEn: 'A small reward after a good day, not a full profit multiplier.',
-    fairnessNote: 'Inalinda somo la cash flow: faida kuu inatoka kwenye biashara.',
-    fairnessNoteEn: 'Protects the cash-flow lesson: main profit still comes from business choices.',
-    emoji: '🎁',
+    id: 'double_daily_profit',
+    title: 'Double Daily Profit',
+    titleEn: 'Double Daily Profit',
+    description: 'Baada ya ripoti ya siku, ad inaweza kuongeza bonus ya faida ya siku hiyo.',
+    descriptionEn: 'After the daily report, an ad can double the eligible daily profit bonus.',
+    fairnessNote: 'Iwekwe na cap ndogo ili biashara, stock choices, na cash flow zibaki ndio chanzo kikuu cha ukuaji.',
+    fairnessNoteEn: 'Use a small cap so business choices, stock picks, and cash flow remain the real source of growth.',
+    emoji: '💰',
   },
   {
-    id: 'bad_event_recovery',
-    title: 'Punguza Hasara ya Tukio Baya',
-    titleEn: 'Recover Part of a Bad Event',
-    description: 'Recover sehemu ndogo ya hasara bila kufuta risk yote.',
-    descriptionEn: 'Recover a small part of a loss without deleting all risk.',
-    fairnessNote: 'Haisafishi makosa yote; inasaidia tu mchezaji asivunjike moyo.',
-    fairnessNoteEn: 'Does not erase every mistake; it only softens frustration.',
-    emoji: '🛟',
+    id: 'market_insider_tip',
+    title: 'Market Insider Tip',
+    titleEn: 'Market Insider Tip',
+    description: 'Dokezo la sokoni kuhusu bidhaa yenye demand, risk, au margin nzuri leo.',
+    descriptionEn: 'A market hint about one product with strong demand, risk, or margin today.',
+    fairnessNote: 'Inatoa taarifa, sio pesa. Mchezaji bado anaamua na kubeba risk.',
+    fairnessNoteEn: 'Gives information, not cash. The player still decides and carries the risk.',
+    emoji: '🧠',
   },
   {
-    id: 'speed_selling',
-    title: 'Harakisha Animation ya Kuuza',
-    titleEn: 'Speed Up Selling Animation',
-    description: 'Inapunguza muda wa presentation, si kuongeza faida.',
-    descriptionEn: 'Reduces presentation time, not profit.',
-    fairnessNote: 'Ni convenience tu, haivunji balance ya biashara.',
-    fairnessNoteEn: 'Pure convenience, so it does not break business balance.',
+    id: 'speed_delivery',
+    title: 'Speed Up Delivery',
+    titleEn: 'Speed Up Delivery',
+    description: 'Harakisha delivery au selling presentation bila kubadilisha faida ya bidhaa.',
+    descriptionEn: 'Speed up delivery or selling presentation without changing product profit.',
+    fairnessNote: 'Ni convenience reward. Haipaswi kuongeza demand au margin moja kwa moja.',
+    fairnessNoteEn: 'This is a convenience reward. It should not directly increase demand or margin.',
     emoji: '⚡',
   },
   {
-    id: 'supplier_tip',
-    title: 'Tip Ndogo ya Supplier',
-    titleEn: 'Small Supplier Tip',
-    description: 'Dokezo kuhusu bidhaa moja yenye demand au risk leo.',
-    descriptionEn: 'A hint about one product with notable demand or risk today.',
-    fairnessNote: 'Inafundisha maamuzi bora badala ya kutoa pesa moja kwa moja.',
-    fairnessNoteEn: 'Teaches better decisions instead of giving direct cash.',
-    emoji: '💡',
+    id: 'bad_trade_recovery',
+    title: 'Recover From Bad Trade',
+    titleEn: 'Recover From Bad Trade',
+    description: 'Punguza sehemu ya hasara baada ya trade mbaya, bidhaa mbovu, au tukio baya.',
+    descriptionEn: 'Recover part of a loss after a bad trade, faulty stock, or negative event.',
+    fairnessNote: 'Recover sehemu tu. Hasara ibaki fundisho, sio ad kuifuta kabisa.',
+    fairnessNoteEn: 'Recover only a portion. A loss should remain a lesson, not be erased by an ad.',
+    emoji: '🛟',
+  },
+];
+
+export const INTERSTITIAL_POLICY: InterstitialPolicy[] = [
+  {
+    id: 'rare_interstitials',
+    title: 'Interstitials Chache Sana',
+    titleEn: 'Very Few Interstitials',
+    description: 'Zisitokee katikati ya maamuzi muhimu kama kununua stock, kuajiri, au kufungua location.',
+    descriptionEn: 'Never interrupt important decisions like buying stock, hiring, or opening a location.',
+    emoji: '🧘',
+  },
+  {
+    id: 'safe_moments_only',
+    title: 'Tumia Safe Moments Tu',
+    titleEn: 'Safe Moments Only',
+    description: 'Kama zikiwahi kuwashwa, ziwe baada ya report au wakati wa kurudi menu.',
+    descriptionEn: 'If enabled later, show them only after reports or when returning to menu.',
+    emoji: '🕒',
+  },
+];
+
+export const PREMIUM_ROADMAP: PremiumRoadmapOption[] = [
+  {
+    id: 'premium_no_ads',
+    title: 'Premium No-Ads',
+    titleEn: 'Premium No-Ads',
+    description: 'Inaweza kuongezwa baada ya ads halisi kuwepo. Kwa sasa hakuna kitu cha kununua.',
+    descriptionEn: 'Can be added after real ads exist. For now, there is nothing to buy.',
+    fairnessNote: 'No-ads iwe comfort purchase tu, sio boost ya faida.',
+    fairnessNoteEn: 'No-ads should be a comfort purchase only, not a profit boost.',
+    emoji: '👑',
+  },
+  {
+    id: 'paid_expansion_packs',
+    title: 'Expansion Packs',
+    titleEn: 'Expansion Packs',
+    description: 'Baadaye inaweza kuongeza miji, bidhaa, story events, na cosmetic themes.',
+    descriptionEn: 'Later it can add cities, products, story events, and cosmetic themes.',
+    fairnessNote: 'Expansion packs ziongeze content, sio short-cut ya ku-win.',
+    fairnessNoteEn: 'Expansion packs should add content, not a shortcut to win.',
+    emoji: '🗺️',
   },
 ];
 
