@@ -51,7 +51,7 @@ Goal: Make the current prototype stable, understandable, and testable on Android
 - Add basic automated unit tests for pure game logic.
 - Add app icon and splash assets that match the Kariakoo identity.
 - Clean up mojibake/encoding artifacts in older UI emoji strings if they render incorrectly on device.
-- Confirm AsyncStorage migration from save versions `1` through `6`.
+- Confirm AsyncStorage migration from save versions `1` through `10`.
 - Add a visible save/load failure fallback or warning for corrupted saves.
 - Add a "version/build" display in Settings tied to `package.json`.
 
@@ -230,11 +230,15 @@ Goal: Prepare optional monetization without hurting trust.
   - Wholesale Boss
   - Zanzibar Branch
 - Remove Ads is intentionally not a purchase option because ads are not implemented.
+- AdMob package, Android App ID, rewarded unit ID, and mostly-disabled interstitial unit ID are configured for a future dev-client build.
+- Reward handlers exist for market tips, bad-trade recovery, speed delivery, and capped daily profit bonus.
 
 ### Left To Work On
 
 - Validate with players that the core loop is fun before enabling any ad SDK.
-- Decide which rewarded ad options should ship first.
+- Test AdMob on a real Android development build.
+- Add privacy policy, Play Console ads declaration, and consent flow before release.
+- Ship Market Insider Tip first, then bad-trade recovery, then speed delivery, then capped daily profit bonus.
 - Add real cosmetic theme switching only after the base UI is stable.
 - Design paid expansion packs around new cities, products, and story events rather than progression boosts.
 - Keep avoiding pay-to-win boosts that break business learning.

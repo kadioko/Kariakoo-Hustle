@@ -51,6 +51,9 @@ Use this checklist before each Android demo or release candidate.
 - Confirm Remove Ads is not shown as a purchase option while ads are disabled.
 - Confirm Premium No-Ads and Expansion Packs are marked as later/disabled roadmap items.
 - Confirm cosmetic themes are visible as placeholders only and do not change gameplay balance.
+- In a dev-client Android build, confirm rewarded ads use Google test ads before production ads are enabled.
+- Confirm closing a rewarded ad early does not grant a reward once real ads are enabled.
+- Confirm the app still works offline or with failed ad initialization.
 
 ## Save, Load, And Migration
 

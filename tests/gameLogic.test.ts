@@ -19,6 +19,7 @@ import { tutorialProgressPercent, tutorialSteps } from '../src/game/tutorial';
 import { businessAdvisorWarnings } from '../src/game/advisor';
 import { generateWeeklyGoals, weeklyGoalProgress } from '../src/game/weeklyGoals';
 import { LOCATIONS } from '../src/data/locations';
+import { claimRewardedAdReward } from '../src/game/adRewards';
 
 test('initial state matches first-session economy expectations', () => {
   const state = createInitialState();
@@ -157,6 +158,66 @@ test('monetization placeholders stay fair and disabled', () => {
     ['kariakoo_classic', 'modern_duka', 'wholesale_boss', 'zanzibar_branch'],
   );
   assert.equal(REWARDED_AD_OPTIONS.some((option) => option.id.includes('remove_ads')), false);
+});
+
+test('rewarded ad rewards are capped, informational, and one-time', () => {
+  const profitable = {
+    ...createInitialState(),
+    reports: [{
+      day: 1,
+      revenue: 200000,
+      cogs: 80000,
+      grossProfit: 120000,
+      expenses: 20000,
+      netProfit: 100000,
+      unitsSold: 12,
+      unitsRemaining: 0,
+      reputationChange: 1,
+      advice: '',
+      adviceEn: '',
+    }],
+  };
+
+  const doubled = claimRewardedAdReward(profitable, 'double_daily_profit');
+  assert.equal(doubled.result.ok, true);
+  assert.equal(doubled.result.cashAwarded, 50000);
+  assert.equal(doubled.state.cash, profitable.cash + 50000);
+
+  const duplicate = claimRewardedAdReward(doubled.state, 'double_daily_profit');
+  assert.equal(duplicate.result.ok, false);
+  assert.equal(duplicate.result.reason, 'already_claimed');
+
+  const tipped = claimRewardedAdReward(createInitialState(), 'market_insider_tip');
+  assert.equal(tipped.result.ok, true);
+  assert.ok(tipped.result.tip?.productId);
+  assert.equal(tipped.state.cash, STARTING_CASH);
+});
+
+test('bad trade recovery only restores part of a loss', () => {
+  const badDay = {
+    ...createInitialState(),
+    cash: 25000,
+    reports: [{
+      day: 1,
+      revenue: 10000,
+      cogs: 25000,
+      grossProfit: -15000,
+      expenses: 10000,
+      netProfit: -25000,
+      qualityLoss: 12000,
+      unitsSold: 2,
+      unitsRemaining: 4,
+      reputationChange: -1,
+      advice: '',
+      adviceEn: '',
+    }],
+  };
+
+  const recovered = claimRewardedAdReward(badDay, 'bad_trade_recovery');
+  assert.equal(recovered.result.ok, true);
+  assert.equal(recovered.result.cashAwarded, 8750);
+  assert.equal(recovered.state.cash, 33750);
+  assert.equal(recovered.state.adRecoveryTotal, 8750);
 });
 
 test('tutorial chain guides the first ten minutes through five core steps', () => {

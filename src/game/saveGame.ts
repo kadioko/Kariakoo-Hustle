@@ -3,7 +3,7 @@ import { generateDailyMissions } from './missions';
 import { generateWeeklyGoals } from './weeklyGoals';
 import { STARTING_CASH } from './economy';
 
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 
 /** Returns a finite, safe number or the fallback (guards against NaN/Infinity in corrupt saves). */
 function safeNumber(v: unknown, fallback: number): number {
@@ -48,6 +48,9 @@ export function createInitialState(): GameState {
     ownedProperties: [],
     completedStoryIds: [],
     readLessonIds: [],
+    adRewardClaims: [],
+    deliverySpeedUntilDay: 0,
+    adRecoveryTotal: 0,
     settings: {
       language: 'sw',
       sound: true,
@@ -97,6 +100,15 @@ export function normalizeGameState(raw: Partial<GameState> | null | undefined): 
     readLessonIds: Array.isArray(raw.readLessonIds)
       ? raw.readLessonIds
       : initial.readLessonIds,
+    adRewardClaims: Array.isArray(raw.adRewardClaims)
+      ? raw.adRewardClaims
+      : initial.adRewardClaims,
+    lastMarketInsiderTip:
+      raw.lastMarketInsiderTip && typeof raw.lastMarketInsiderTip === 'object'
+        ? raw.lastMarketInsiderTip
+        : initial.lastMarketInsiderTip,
+    deliverySpeedUntilDay: Math.max(0, Math.round(safeNumber(raw.deliverySpeedUntilDay, 0))),
+    adRecoveryTotal: Math.max(0, safeNumber(raw.adRecoveryTotal, 0)),
     inventory: Array.isArray(raw.inventory) ? raw.inventory : initial.inventory,
     upgrades: Array.isArray(raw.upgrades) ? raw.upgrades : initial.upgrades,
     workers: Array.isArray(raw.workers) ? raw.workers : initial.workers,

@@ -1,5 +1,5 @@
 export interface RewardedAdOption {
-  id: string;
+  id: RewardedAdType;
   title: string;
   titleEn: string;
   description: string;
@@ -39,9 +39,19 @@ export interface CosmeticTheme {
   colors: [string, string, string];
 }
 
+export type RewardedAdType =
+  | 'double_daily_profit'
+  | 'market_insider_tip'
+  | 'speed_delivery'
+  | 'bad_trade_recovery';
+
 export const ADS_ENABLED = false;
 export const INTERSTITIALS_ENABLED = false;
 export const PREMIUM_ENABLED = false;
+
+export const ADMOB_ANDROID_APP_ID = 'ca-app-pub-1484098434630929~6907155869';
+export const ADMOB_REWARDED_AD_UNIT_ID = 'ca-app-pub-1484098434630929/6500837461';
+export const ADMOB_INTERSTITIAL_AD_UNIT_ID = 'ca-app-pub-1484098434630929/3874674129';
 
 export const REWARDED_AD_OPTIONS: RewardedAdOption[] = [
   {

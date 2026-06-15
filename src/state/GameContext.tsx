@@ -14,6 +14,7 @@ import {
   GameState,
   Language,
 } from '@/types';
+import { RewardedAdType } from '@/data/monetization';
 import { createInitialState, normalizeGameState } from '@/game/saveGame';
 import { clearGame, loadGameResult, saveGame } from '@/storage';
 import { findProduct } from '@/data/products';
@@ -41,6 +42,8 @@ import { cityBuyFactor, travelToCity } from '@/game/cities';
 import { addSaturation, buyPriceImpact, saturationFor } from '@/game/marketImpact';
 import { buyPropertyAction } from '@/game/property';
 import { LESSON_XP, LESSONS } from '@/data/lessons';
+import { claimRewardedAdReward, AdRewardClaimResult } from '@/game/adRewards';
+import { showRewardedAd } from '@/services/adService';
 
 interface EndDayOutcome {
   report: DailyReport;
@@ -89,6 +92,7 @@ interface GameContextType {
   setVibration: (v: boolean) => void;
   setBusinessName: (name: string) => void;
   markReportViewed: () => void;
+  watchRewardedAd: (type: RewardedAdType) => Promise<AdRewardClaimResult>;
   applyCheatCode: (code: string) => { ok: boolean; message: string; messageEn: string };
   resetGame: () => Promise<void>;
 }
@@ -406,6 +410,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     ));
   }, []);
 
+  const watchRewardedAd = useCallback(
+    async (type: RewardedAdType): Promise<AdRewardClaimResult> => {
+      const adResult = await showRewardedAd(type);
+      if (!adResult.ok || !adResult.rewardEarned) {
+        return {
+          ok: false,
+          reason: 'not_eligible',
+          message: 'Ad haijakamilika, reward haijatolewa.',
+          messageEn: 'The ad was not completed, so no reward was granted.',
+        };
+      }
+
+      const claim = claimRewardedAdReward(state, type);
+      if (claim.result.ok) setState(claim.state);
+      return claim.result;
+    },
+    [state],
+  );
+
   const applyCheatCode = useCallback((rawCode: string) => {
     const code = normalizeCheatCode(rawCode);
     const success = (message: string, messageEn: string) => ({ ok: true, message, messageEn });
@@ -484,6 +507,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setVibration,
       setBusinessName,
       markReportViewed,
+      watchRewardedAd,
       applyCheatCode,
       resetGame,
     }),
@@ -515,6 +539,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setVibration,
       setBusinessName,
       markReportViewed,
+      watchRewardedAd,
       applyCheatCode,
       resetGame,
     ],

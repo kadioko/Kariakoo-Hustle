@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -12,17 +12,38 @@ import {
   PREMIUM_ENABLED,
   PREMIUM_ROADMAP,
   REWARDED_AD_OPTIONS,
+  RewardedAdType,
 } from '@/data/monetization';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Header } from '@/components/Header';
 import { Pill } from '@/components/Pill';
+import { useToast } from '@/components/Toast';
 import { t } from '@/utils/i18n';
 
 export const MonetizationScreen: React.FC = () => {
   const nav = useNavigation<any>();
-  const { language } = useGame();
+  const { language, watchRewardedAd } = useGame();
+  const toast = useToast();
+  const [loadingReward, setLoadingReward] = useState<RewardedAdType | null>(null);
   const lang = language;
+
+  const handleReward = async (type: RewardedAdType) => {
+    setLoadingReward(type);
+    const result = await watchRewardedAd(type);
+    setLoadingReward(null);
+    if (result.ok) {
+      toast.success(
+        lang === 'sw' ? 'Reward imepatikana' : 'Reward earned',
+        lang === 'sw' ? result.message : result.messageEn,
+      );
+    } else {
+      toast.info(
+        lang === 'sw' ? 'Reward haijatolewa' : 'No reward granted',
+        lang === 'sw' ? result.message : result.messageEn,
+      );
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -77,8 +98,16 @@ export const MonetizationScreen: React.FC = () => {
               <Text style={styles.fairnessText}>{lang === 'sw' ? option.fairnessNote : option.fairnessNoteEn}</Text>
             </View>
             <Button
-              title={lang === 'sw' ? 'Placeholder - bado imefungwa' : 'Placeholder - disabled'}
-              disabled
+              title={
+                ADS_ENABLED
+                  ? 'Watch ad'
+                  : lang === 'sw'
+                    ? 'Jaribu placeholder'
+                    : 'Test placeholder'
+              }
+              onPress={() => handleReward(option.id)}
+              loading={loadingReward === option.id}
+              disabled={loadingReward !== null && loadingReward !== option.id}
               variant="secondary"
               size="sm"
               fullWidth

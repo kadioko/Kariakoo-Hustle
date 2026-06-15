@@ -253,6 +253,15 @@ export interface TutorialProgress {
   reportViewed: boolean;
 }
 
+export interface MarketInsiderTip {
+  day: number;
+  productId: string;
+  title: string;
+  titleEn: string;
+  message: string;
+  messageEn: string;
+}
+
 export interface Loan {
   id: string;
   principal: number;
@@ -311,4 +320,12 @@ export interface GameState {
   completedStoryIds: string[];
   /** Read financial literacy lesson ids */
   readLessonIds: string[];
+  /** Claimed rewarded-ad rewards, keyed by reward type and relevant day/report */
+  adRewardClaims: string[];
+  /** Latest optional market tip unlocked by a rewarded ad */
+  lastMarketInsiderTip?: MarketInsiderTip;
+  /** Day through which delivery/selling presentation can run faster */
+  deliverySpeedUntilDay: number;
+  /** Total cash recovered through bad-trade rewarded ads */
+  adRecoveryTotal: number;
 }
