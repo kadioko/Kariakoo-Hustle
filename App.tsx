@@ -10,7 +10,7 @@ export default function App() {
     <SafeAreaProvider>
       <GameProvider>
         <ToastProvider>
-          <StatusBar style="light" backgroundColor="#0E7C5A" />
+          <StatusBar style="light" />
           <AppNavigator />
         </ToastProvider>
       </GameProvider>

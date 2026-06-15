@@ -11,7 +11,9 @@
       "backgroundColor": "#0E7C5A",
       "resizeMode": "contain"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
       "package": "com.kariakoohustle.app",
       "versionCode": 1,
@@ -34,7 +36,8 @@
           "androidAppId": "ca-app-pub-1484098434630929~6907155869",
           "delayAppMeasurementInit": true
         }
-      ]
+      ],
+      "expo-status-bar"
     ]
   }
 }

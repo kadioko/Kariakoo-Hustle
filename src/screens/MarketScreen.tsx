@@ -780,7 +780,7 @@ const styles = StyleSheet.create({
   quickBuyDisabled: { backgroundColor: '#C5C5C5' },
   quickBuyText: { color: '#fff', fontSize: font.xs, fontWeight: '900' },
   lockOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#FFFFFFCC',
     alignItems: 'center',
     justifyContent: 'center',

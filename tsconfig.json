@@ -5,9 +5,11 @@
     "jsx": "react-native",
     "module": "esnext",
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "ignoreDeprecations": "6.0",
     "resolveJsonModule": true,
     "skipLibCheck": true,
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
