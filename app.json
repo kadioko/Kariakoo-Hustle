@@ -38,6 +38,12 @@
         }
       ],
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6a893276-61f9-4f8a-8e4b-2cb24a5e1df3"
+      }
+    },
+    "owner": "kadioko"
   }
 }

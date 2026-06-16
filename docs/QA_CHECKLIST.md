@@ -4,9 +4,10 @@ Use this checklist before each Android demo or release candidate.
 
 ## Device Setup
 
-- Install the latest Expo Go on a physical Android phone.
+- Install the latest Kariakoo Hustle development build on a physical Android phone.
+- Expo Go is not enough because the app includes native AdMob modules.
 - Connect to the same network as the dev machine, or use a USB/tunnel Expo connection.
-- Start the app with `npm start`, then open it on the device.
+- Start Metro with `npx expo start --dev-client`, then open it from the development build.
 - Test on a small-screen Android device if available, ideally 360 x 640 dp or close.
 
 ## First Session Flow
