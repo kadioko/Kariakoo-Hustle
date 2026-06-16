@@ -2,6 +2,10 @@
 
 Use this when creating the Google Play listing and release.
 
+For screen-by-screen answer recommendations, also use:
+
+`docs/PLAY_CONSOLE_ANSWERS.md`
+
 ## App Setup
 
 - App name: `Kariakoo Hustle`
