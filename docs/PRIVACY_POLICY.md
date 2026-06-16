@@ -1,8 +1,8 @@
-# Privacy Policy Draft
+# Privacy Policy
 
-Effective date: TODO
+Effective date: June 16, 2026
 
-Kariakoo Hustle is an offline-friendly mobile business simulation game. This draft should be reviewed before publishing and hosted at a public URL before Google Play submission.
+Kariakoo Hustle is an offline-friendly mobile business simulation game.
 
 ## Information We Collect
 
@@ -43,11 +43,4 @@ Players can reset local progress in Settings. Uninstalling the app also removes 
 
 For support or privacy questions, contact:
 
-TODO: add support email
-
-## Notes Before Publishing
-
-- Replace TODO fields.
-- Host this file at a public HTTPS URL.
-- Make sure Google Play Data Safety answers match the final release build.
-- Add consent flow before enabling real ads in production.
+godfreymariki@gmail.com

@@ -22,7 +22,7 @@ You must host it at a public HTTPS URL, then paste that URL in Play Console.
 
 Recommended privacy policy URL field:
 
-`TODO: paste hosted privacy policy URL`
+`https://raw.githubusercontent.com/kadioko/Kariakoo-Hustle/main/docs/PRIVACY_POLICY.md`
 
 Good hosting options:
 
@@ -31,10 +31,9 @@ Good hosting options:
 - Google Sites
 - Any stable public HTTPS page
 
-Before publishing the policy, replace:
+Support/privacy email:
 
-- `TODO` effective date
-- `TODO` support/privacy email
+`godfreymariki@gmail.com`
 
 ## 2. Sign In Details / App Access
 

@@ -70,6 +70,6 @@ Required size:
 
 ## Support
 
-Support email: `TODO: add support email`
+Support email: `godfreymariki@gmail.com`
 
-Privacy policy URL: `TODO: publish docs/PRIVACY_POLICY.md and add URL`
+Privacy policy URL: `https://raw.githubusercontent.com/kadioko/Kariakoo-Hustle/main/docs/PRIVACY_POLICY.md`
