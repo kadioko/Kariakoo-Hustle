@@ -35,6 +35,8 @@ import { daysLeftInSeason, seasonForDay } from '@/game/seasons';
 import { leaderboard, playerRank } from '@/game/rivals';
 import { currentChapter, goalProgress } from '@/game/story';
 import { findCity } from '@/game/cities';
+import { nextMoveFor } from '@/game/nextMove';
+import { dailyMarketBrief } from '@/game/dailyBrief';
 
 // Animated cash number
 function AnimatedCash({ value }: { value: number }) {
@@ -157,6 +159,8 @@ export const DashboardScreen: React.FC = () => {
       : lastSavedAt
         ? (lang === 'sw' ? 'Saved' : 'Saved')
         : (lang === 'sw' ? 'Offline ready' : 'Offline ready');
+  const nextMove = nextMoveFor(state);
+  const marketBrief = dailyMarketBrief(state);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
@@ -239,6 +243,72 @@ export const DashboardScreen: React.FC = () => {
                   {!step.completed && step.route ? <Text style={styles.tutorialArrow}>›</Text> : null}
                 </Pressable>
               ))}
+            </Card>
+          )}
+
+          <Pressable
+            onPress={() => nav.navigate(nextMove.route as any)}
+            style={styles.nextMoveCard}
+          >
+            <View style={styles.nextMoveIcon}>
+              <Text style={styles.nextMoveIconText}>{nextMove.emoji}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.nextMoveKicker}>
+                {lang === 'sw' ? 'HATUA INAYOFUATA' : 'NEXT BEST MOVE'}
+              </Text>
+              <Text style={styles.nextMoveTitle}>
+                {lang === 'sw' ? nextMove.title : nextMove.titleEn}
+              </Text>
+              <Text style={styles.nextMoveBody}>
+                {lang === 'sw' ? nextMove.body : nextMove.bodyEn}
+              </Text>
+            </View>
+            <Text style={styles.nextMoveArrow}>›</Text>
+          </Pressable>
+
+          {marketBrief && (
+            <Pressable
+              onPress={() => nav.navigate('Market' as any)}
+              style={styles.marketBriefCard}
+            >
+              <View style={styles.marketBriefIcon}>
+                <Text style={styles.marketBriefEmoji}>{marketBrief.product.emoji}</Text>
+              </View>
+              <View style={styles.marketBriefBody}>
+                <Text style={styles.marketBriefKicker}>
+                  {lang === 'sw' ? 'SOKO LA LEO' : 'TODAY\'S MARKET'}
+                </Text>
+                <Text style={styles.marketBriefTitle} numberOfLines={1}>
+                  {lang === 'sw' ? marketBrief.product.name : marketBrief.product.nameEn}
+                </Text>
+                <Text style={styles.marketBriefText} numberOfLines={2}>
+                  {lang === 'sw' ? marketBrief.reason : marketBrief.reasonEn}
+                </Text>
+                <Text style={styles.marketBriefMeta}>
+                  {lang === 'sw'
+                    ? `Jaribu ${marketBrief.suggestedQuantity} x ${formatTZS(marketBrief.quotedUnitPrice)}`
+                    : `Try ${marketBrief.suggestedQuantity} x ${formatTZS(marketBrief.quotedUnitPrice)}`}
+                </Text>
+              </View>
+              <Text style={styles.marketBriefArrow}>{'>'}</Text>
+            </Pressable>
+          )}
+
+          {state.missionStreak > 0 && (
+            <Card alt style={{ borderLeftWidth: 4, borderLeftColor: colors.accent }}>
+              <View style={styles.xpRow}>
+                <Text style={styles.sectionLabel}>
+                  {lang === 'sw' ? 'Mfululizo wa Misheni' : 'Mission Streak'}
+                </Text>
+                <Text style={styles.xpVal}>{state.missionStreak} {lang === 'sw' ? 'siku' : 'days'}</Text>
+              </View>
+              <ProgressBar value={state.missionStreak % 3 || 3} max={3} height={8} color={colors.accent} />
+              <Text style={styles.tutorialDesc}>
+                {lang === 'sw'
+                  ? 'Kamilisha misheni zote za siku 3 upate bonus ya cash.'
+                  : 'Complete all missions for 3 days to earn a cash bonus.'}
+              </Text>
             </Card>
           )}
 
@@ -789,4 +859,51 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
   },
+  nextMoveCard: {
+    backgroundColor: colors.primaryDark,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    ...shadow.pop,
+  },
+  nextMoveIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nextMoveIconText: { color: colors.text, fontSize: 22, fontWeight: '900' },
+  nextMoveKicker: { color: '#FFFFFFAA', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  nextMoveTitle: { color: '#fff', fontSize: font.md, fontWeight: '900', marginTop: 2 },
+  nextMoveBody: { color: '#FFFFFFCC', fontSize: font.xs, lineHeight: 17, marginTop: 3 },
+  nextMoveArrow: { color: colors.accent, fontSize: 28, fontWeight: '700' },
+  marketBriefCard: {
+    backgroundColor: '#EAF7F0',
+    borderWidth: 1,
+    borderColor: '#BDE6D1',
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  marketBriefIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  marketBriefEmoji: { fontSize: 24 },
+  marketBriefBody: { flex: 1, minWidth: 0 },
+  marketBriefKicker: { color: colors.primaryDark, fontSize: 10, fontWeight: '900', letterSpacing: 0.7 },
+  marketBriefTitle: { color: colors.text, fontSize: font.sm, fontWeight: '900', marginTop: 1 },
+  marketBriefText: { color: colors.textMuted, fontSize: font.xs, lineHeight: 16, marginTop: 2 },
+  marketBriefMeta: { color: colors.primaryDark, fontSize: font.xs, fontWeight: '800', marginTop: 4 },
+  marketBriefArrow: { color: colors.primary, fontSize: 22, fontWeight: '900' },
 });

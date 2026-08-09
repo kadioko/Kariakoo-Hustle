@@ -13,11 +13,13 @@ import { Card } from '@/components/Card';
 import { StatRow } from '@/components/StatRow';
 import { Button } from '@/components/Button';
 import { Header } from '@/components/Header';
+import { sellingStrategyInfo } from '@/game/sellingStrategy';
 
 const ReportItem: React.FC<{ r: DailyReport; lang: 'sw' | 'en' }> = ({ r, lang }) => {
   const profitable = r.netProfit >= 0;
   const best = r.bestSellerId ? findProduct(r.bestSellerId) : null;
   const eventTitle = lang === 'sw' ? r.eventTitle : r.eventTitleEn ?? r.eventTitle;
+  const strategy = sellingStrategyInfo(r.strategy ?? 'balanced');
   return (
     <Card style={[styles.reportItem, { borderLeftColor: profitable ? colors.success : colors.danger }]}>
       <View style={styles.reportTop}>
@@ -28,6 +30,9 @@ const ReportItem: React.FC<{ r: DailyReport; lang: 'sw' | 'en' }> = ({ r, lang }
       </View>
       <Text style={styles.reportSub}>
         {t('revenue', lang)}: {formatTZS(r.revenue)} · {t('expenses', lang)}: {formatTZS(r.expenses)} · {r.unitsSold} units sold
+      </Text>
+      <Text style={styles.reportStrategy}>
+        {strategy.emoji} {lang === 'sw' ? strategy.name : strategy.nameEn}
       </Text>
       {(r.qualityLoss ?? 0) > 0 && (
         <Text style={styles.reportQuality}>
@@ -48,6 +53,13 @@ const ReportItem: React.FC<{ r: DailyReport; lang: 'sw' | 'en' }> = ({ r, lang }
           🎯 {r.missionResults.filter((mission) => mission.completed).length}/{r.missionResults.length}
           {' '}
           {lang === 'sw' ? 'misheni zimekamilika' : 'missions completed'}
+        </Text>
+      )}
+      {r.missionStreakBonus && r.missionStreakBonus > 0 && (
+        <Text style={styles.reportMission}>
+          {lang === 'sw'
+            ? `Bonus ya mfululizo: +${formatTZS(r.missionStreakBonus)}`
+            : `Mission streak bonus: +${formatTZS(r.missionStreakBonus)}`}
         </Text>
       )}
       {r.expenseBreakdown && (
@@ -233,6 +245,7 @@ const styles = StyleSheet.create({
   reportDay: { flex: 1, fontSize: font.sm, fontWeight: '700', color: colors.text },
   reportNet: { flexShrink: 1, fontSize: font.lg, fontWeight: '900', textAlign: 'right' },
   reportSub: { fontSize: font.xs, color: colors.textMuted, lineHeight: 18 },
+  reportStrategy: { fontSize: font.xs, color: colors.primary, fontWeight: '800', marginTop: 4 },
   reportBest: { fontSize: font.xs, color: colors.primary, fontWeight: '700', marginTop: 4 },
   reportEvent: { fontSize: font.xs, color: colors.warning, marginTop: 2 },
   reportMission: { fontSize: font.xs, color: colors.primary, fontWeight: '800', marginTop: 3 },

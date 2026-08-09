@@ -12,6 +12,7 @@ expo-web*.log
 *.orig.*
 web-build/
 release-builds/
+builds/
 .DS_Store
 .env*
 docs/CHEAT_CODES_LOCAL.md

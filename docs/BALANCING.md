@@ -150,4 +150,4 @@ When adding new fields to `GameState`:
 1. Add them to `src/types/index.ts`.
 2. Add default values in `src/game/saveGame.ts`.
 3. Update `normalizeGameState` so old saves keep working.
-4. Type check with `npm run tsc`.
+4. Type check with `npm run typecheck`.

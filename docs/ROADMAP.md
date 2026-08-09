@@ -68,12 +68,12 @@ Goal: Make every day feel like a choice, not just a button press.
 
 ### Left To Work On
 
-- Add mission streaks for completing daily missions multiple days in a row.
+- Add more mission streak variants beyond the current streak system.
 - Expand weekly goals beyond revenue, unit sales, positive days, and upgrades.
 - Expand product category demand modifiers by location.
 - Add seasonal modifiers, such as school season, holiday season, rainy season, and tourist season.
-- Add stock aging so old inventory becomes harder to sell or needs clearance.
-- Add supplier quality tiers: cheap, standard, premium.
+- Expand the current stock-aging system with category-specific aging and better clearance recommendations.
+- Supplier quality tiers are implemented: budget, standard, and premium batches change cost and return risk.
 - Add product batch quality so not every unit of a product has the same risk.
 - Add loan repayment summary and optional early repayment.
 - Add warnings before taking a loan if runway is already low.
@@ -81,7 +81,7 @@ Goal: Make every day feel like a choice, not just a button press.
 
 ### Acceptance Criteria
 
-- Players have at least three meaningful choices after every report.
+- Players have at least three meaningful contextual choices after every report. Implemented.
 - Risky products feel tempting but not mandatory.
 - Clearance sales are useful, but not the optimal default strategy.
 - Missions create return motivation without feeling like chores.
@@ -259,7 +259,7 @@ These items should be addressed before the codebase grows too much:
 - Clean up any text encoding artifacts in source files.
 - Consider replacing emoji placeholders with a local icon/asset strategy.
 - Add linting and formatting scripts.
-- Add CI for `npm run tsc`.
+- Add CI for `npm run typecheck`.
 - Add a consistent changelog.
 - Add typed navigation for all stack and tab routes.
 

@@ -25,6 +25,9 @@ import { ProgressBar } from '@/components/ProgressBar';
 import { Pill } from '@/components/Pill';
 import { buzz } from '@/utils/haptics';
 import { streakEmoji } from '@/game/streaks';
+import { SELLING_STRATEGIES, SellingStrategy, recommendSellingStrategy, sellingStrategyInfo } from '@/game/sellingStrategy';
+import { tomorrowPlan, TomorrowPlanRoute } from '@/game/tomorrowPlan';
+import { breakEvenSnapshot } from '@/game/breakEven';
 
 type Phase = 'idle' | 'selling' | 'event' | 'result';
 
@@ -119,17 +122,26 @@ export const SellScreen: React.FC = () => {
   const [report, setReport] = useState<DailyReport | null>(null);
   const [pendingEvent, setPendingEvent] = useState<GameEvent | null>(null);
   const [eventResult, setEventResult] = useState<{ sw: string; en: string } | null>(null);
+  const [strategy, setStrategy] = useState<SellingStrategy>('balanced');
+  const [strategyTouched, setStrategyTouched] = useState(false);
   const lang = language;
 
   const totalStock = inventoryUnits(state);
   const expenses = calcDailyExpenses(state);
+  const breakEven = breakEvenSnapshot(state);
+  const recommendedStrategy = recommendSellingStrategy(state);
+
+  useEffect(() => {
+    if (!strategyTouched && phase === 'idle') setStrategy(recommendedStrategy);
+  }, [recommendedStrategy, strategyTouched, phase]);
+  const reportStrategy = report ? sellingStrategyInfo(report.strategy ?? 'balanced') : null;
 
   const runDay = () => {
     setPhase('selling');
   };
 
   const onSellingDone = () => {
-    const outcome = endDay();
+    const outcome = endDay(strategy);
     setReport(outcome.report);
 
     buzz(state.settings, outcome.report.netProfit >= 0 ? 'success' : 'error');
@@ -196,6 +208,18 @@ export const SellScreen: React.FC = () => {
     nav.goBack();
   };
 
+  const handlePlanAction = (route: TomorrowPlanRoute) => {
+    dismissEvent();
+    setPendingEvent(null);
+    setEventResult(null);
+    setPhase('idle');
+    if (route === 'Market' || route === 'Inventory' || route === 'Upgrades' || route === 'Dashboard') {
+      nav.navigate('Tabs', { screen: route });
+      return;
+    }
+    nav.navigate(route);
+  };
+
   // — EVENT CHOICE SCREEN —
   if (phase === 'event' && pendingEvent) {
     return (
@@ -241,6 +265,7 @@ export const SellScreen: React.FC = () => {
     const profitable = report.netProfit >= 0;
     const best = report.bestSellerId ? findProduct(report.bestSellerId) : null;
     const worst = report.worstSellerId ? findProduct(report.worstSellerId) : null;
+    const plan = tomorrowPlan(state, report);
 
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -248,6 +273,11 @@ export const SellScreen: React.FC = () => {
           {/* Hero header */}
           <View style={[styles.reportHero, { backgroundColor: profitable ? colors.primary : colors.danger }]}>
             <Text style={styles.reportHeroDay}>{t('day', lang)} {report.day}</Text>
+            {reportStrategy && (
+              <Text style={styles.reportStrategyLabel}>
+                {reportStrategy.emoji} {lang === 'sw' ? reportStrategy.name : reportStrategy.nameEn}
+              </Text>
+            )}
             <HeroPop profitable={profitable}>
               <Text style={styles.reportHeroEmoji}>{profitable ? '🤑' : '😓'}</Text>
               <Text style={styles.reportHeroNet}>{profitable ? '+' : ''}{formatTZS(report.netProfit)}</Text>
@@ -379,6 +409,13 @@ export const SellScreen: React.FC = () => {
                         <Text style={styles.saleTickerSub}>
                           {sale.sold} {lang === 'sw' ? 'vipande' : 'units'} · {formatTZS(sale.revenue)}
                         </Text>
+                        {(sale.returned ?? 0) > 0 && (
+                          <Text style={styles.saleTickerLoss}>
+                            {lang === 'sw'
+                              ? `${sale.returned} zimerudishwa · ${formatTZS(sale.qualityLoss ?? 0)} imepotea`
+                              : `${sale.returned} returned · ${formatTZS(sale.qualityLoss ?? 0)} lost`}
+                          </Text>
+                        )}
                       </View>
                     </View>
                   );
@@ -467,6 +504,39 @@ export const SellScreen: React.FC = () => {
               </Text>
             </Card>
 
+            <Card>
+              <Text style={styles.sectionTitle}>
+                {lang === 'sw' ? 'Mpango wa Kesho' : "Tomorrow's Plan"}
+              </Text>
+              <Text style={styles.planIntro}>
+                {lang === 'sw'
+                  ? 'Chagua hatua moja. Biashara nzuri huanza na uamuzi unaofuata.'
+                  : 'Choose one next step. A strong business starts with the next decision.'}
+              </Text>
+              <View style={styles.planList}>
+                {plan.map((action, index) => (
+                  <TouchableOpacity
+                    key={action.id}
+                    onPress={() => handlePlanAction(action.route)}
+                    style={[
+                      styles.planAction,
+                      action.tone === 'danger' && styles.planActionDanger,
+                      action.tone === 'warning' && styles.planActionWarning,
+                    ]}
+                  >
+                    <View style={styles.planNumber}>
+                      <Text style={styles.planNumberText}>{index + 1}</Text>
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.planTitle}>{lang === 'sw' ? action.title : action.titleEn}</Text>
+                      <Text style={styles.planBody}>{lang === 'sw' ? action.body : action.bodyEn}</Text>
+                    </View>
+                    <Text style={styles.planArrow}>{'>'}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </Card>
+
             <Button
               title={`✅ ${t('continue', lang)}`}
               onPress={handleDone}
@@ -527,6 +597,120 @@ export const SellScreen: React.FC = () => {
           <StatRow label={lang === 'sw' ? 'Jumla' : 'Total'} value={formatTZS(expenses.total)} negative />
         </Card>
 
+        <Card style={[
+          styles.breakEvenCard,
+          breakEven.status === 'unlikely' && styles.breakEvenCardDanger,
+        ]}>
+          <Text style={styles.sectionTitle}>
+            {lang === 'sw' ? 'Break-even ya Leo' : "Today's Break-even"}
+          </Text>
+          <StatRow
+            label={lang === 'sw' ? 'Gharama za kufunika' : 'Costs to cover'}
+            value={formatTZS(breakEven.contributionNeeded)}
+            negative={breakEven.contributionNeeded > 0}
+          />
+          {breakEven.propertyIncome > 0 && (
+            <StatRow
+              label={lang === 'sw' ? 'Kipato cha mali' : 'Property income'}
+              value={`+${formatTZS(breakEven.propertyIncome)}`}
+              positive
+            />
+          )}
+          <StatRow
+            label={lang === 'sw' ? 'Margin wastani kwa unit' : 'Average margin per unit'}
+            value={formatTZS(breakEven.averageUnitMargin)}
+            highlight={breakEven.averageUnitMargin > 0}
+          />
+          <View style={styles.breakEvenTarget}>
+            <Text style={styles.breakEvenTargetValue}>
+              {Number.isFinite(breakEven.unitsNeeded) ? breakEven.unitsNeeded : '--'}
+              <Text style={styles.breakEvenTargetTotal}> / {breakEven.availableUnits}</Text>
+            </Text>
+            <Text style={styles.breakEvenTargetLabel}>
+              {lang === 'sw' ? 'units za mafanikio zinahitajika' : 'successful units needed'}
+            </Text>
+          </View>
+          <Text style={[
+            styles.breakEvenMessage,
+            breakEven.status === 'unlikely' && { color: colors.danger },
+            breakEven.status === 'covered' && { color: colors.success },
+          ]}>
+            {breakEven.status === 'covered'
+              ? lang === 'sw' ? 'Kipato cha mali tayari kimefunika gharama za leo.' : 'Property income already covers today\'s operating costs.'
+              : breakEven.status === 'no_stock'
+                ? lang === 'sw' ? 'Huna stock ya kufunika gharama za leo.' : 'You have no stock to cover today\'s costs.'
+                : breakEven.status === 'unlikely'
+                  ? lang === 'sw' ? 'Stock hii haitoshi kufika break-even kwa margin ya leo.' : 'Current stock cannot reach break-even at today\'s margin.'
+                  : lang === 'sw' ? `Uza angalau units ${breakEven.unitsNeeded} kufunika gharama.` : `Sell at least ${breakEven.unitsNeeded} successful units to cover costs.`}
+          </Text>
+          {breakEven.averageQualityRisk >= 1.3 && (
+            <Text style={styles.breakEvenQualityWarning}>
+              {lang === 'sw'
+                ? 'Quality ya batch ina risk. Mbinu ya Uuzaji Salama inapendekezwa.'
+                : 'Batch quality is risky. Safe Selling is recommended.'}
+            </Text>
+          )}
+        </Card>
+
+        <Card>
+          <Text style={styles.sectionTitle}>
+            {lang === 'sw' ? 'Chagua mbinu ya leo' : "Choose today's strategy"}
+          </Text>
+          <Text style={styles.strategyHint}>
+            {lang === 'sw'
+              ? 'Kila uamuzi una faida na gharama. Chagua kulingana na cash na sifa yako.'
+              : 'Every choice has a tradeoff. Choose based on your cash and reputation.'}
+          </Text>
+          <View style={styles.advisorTip}>
+            <Text style={styles.advisorTipTitle}>
+              {lang === 'sw' ? 'Mshauri wa biashara' : 'Business advisor'}
+            </Text>
+            <Text style={styles.advisorTipBody}>
+              {lang === 'sw'
+                ? `Kwa hali ya biashara yako, ${sellingStrategyInfo(recommendedStrategy).name} ni chaguo salama kuanzia.`
+                : `For your current business, ${sellingStrategyInfo(recommendedStrategy).nameEn} is the safest starting point.`}
+            </Text>
+          </View>
+          <View style={styles.strategyList}>
+            {SELLING_STRATEGIES.map((option) => {
+              const active = strategy === option.id;
+              return (
+                <TouchableOpacity
+                  key={option.id}
+                  onPress={() => {
+                    setStrategyTouched(true);
+                    setStrategy(option.id);
+                  }}
+                  style={[styles.strategyCard, active && styles.strategyCardActive]}
+                >
+                  <View style={[styles.strategyBadge, active && styles.strategyBadgeActive]}>
+                    <Text style={[styles.strategyBadgeText, active && styles.strategyBadgeTextActive]}>{option.emoji}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.strategyName, active && styles.strategyNameActive]}>
+                      {lang === 'sw' ? option.name : option.nameEn}
+                    </Text>
+                    <Text style={[styles.strategyDescription, active && styles.strategyDescriptionActive]}>
+                      {lang === 'sw' ? option.description : option.descriptionEn}
+                    </Text>
+                    <Text style={[styles.strategyEffect, active && styles.strategyEffectActive]}>
+                      {lang === 'sw' ? option.effect : option.effectEn}
+                    </Text>
+                    {option.id === recommendedStrategy && (
+                      <Text style={styles.recommendedLabel}>
+                        {lang === 'sw' ? 'Mshauri anapendekeza' : 'Advisor pick'}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={[styles.strategyRadio, active && styles.strategyRadioActive]}>
+                    {active ? <Text style={styles.strategyCheck}>✓</Text> : null}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Card>
+
         {state.loans.length > 0 && (
           <Card alt>
             <Text style={styles.sectionTitle}>
@@ -582,6 +766,51 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: font.lg, fontWeight: '800', color: colors.text },
   dayLabel: { fontSize: font.xxl, fontWeight: '900', color: colors.primary, marginTop: spacing.md },
   sellIntro: { color: colors.textMuted, fontSize: font.sm, textAlign: 'center', marginTop: spacing.sm, lineHeight: 20 },
+  strategyHint: { color: colors.textMuted, fontSize: font.xs, lineHeight: 17, marginBottom: spacing.sm },
+  breakEvenCard: { borderColor: '#BDE6D1', borderWidth: 1.5 },
+  breakEvenCardDanger: { borderColor: '#F3B7BD', backgroundColor: '#FFF8F8' },
+  breakEvenTarget: { alignItems: 'center', paddingVertical: spacing.md },
+  breakEvenTargetValue: { color: colors.primaryDark, fontSize: 30, fontWeight: '900' },
+  breakEvenTargetTotal: { color: colors.textMuted, fontSize: font.md, fontWeight: '700' },
+  breakEvenTargetLabel: { color: colors.textMuted, fontSize: font.xs, marginTop: 2 },
+  breakEvenMessage: { color: colors.primaryDark, fontSize: font.sm, fontWeight: '800', textAlign: 'center', lineHeight: 19 },
+  breakEvenQualityWarning: { color: colors.warning, fontSize: font.xs, fontWeight: '800', textAlign: 'center', lineHeight: 17, marginTop: spacing.sm },
+  advisorTip: { backgroundColor: colors.cardAlt, borderLeftWidth: 3, borderLeftColor: colors.accent, padding: spacing.sm, marginBottom: spacing.sm },
+  advisorTipTitle: { color: colors.accentDark, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  advisorTipBody: { color: colors.text, fontSize: font.xs, lineHeight: 17, marginTop: 2 },
+  strategyList: { gap: spacing.sm },
+  strategyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.bg,
+  },
+  strategyCardActive: { borderColor: colors.primary, backgroundColor: '#EAF7F1' },
+  strategyBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  strategyBadgeActive: { backgroundColor: colors.primary },
+  strategyBadgeText: { color: colors.textMuted, fontWeight: '900' },
+  strategyBadgeTextActive: { color: '#fff' },
+  strategyName: { color: colors.text, fontSize: font.sm, fontWeight: '900' },
+  strategyNameActive: { color: colors.primaryDark },
+  strategyDescription: { color: colors.textMuted, fontSize: font.xs, lineHeight: 16, marginTop: 2 },
+  strategyDescriptionActive: { color: colors.text },
+  strategyEffect: { color: colors.info, fontSize: 10, fontWeight: '800', marginTop: 3 },
+  strategyEffectActive: { color: colors.primary },
+  recommendedLabel: { color: colors.accentDark, fontSize: 10, fontWeight: '900', marginTop: 3 },
+  strategyRadio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  strategyRadioActive: { borderColor: colors.primary, backgroundColor: colors.primary },
+  strategyCheck: { color: '#fff', fontSize: 12, fontWeight: '900' },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.sm },
   sectionTitle: { fontSize: font.sm, fontWeight: '800', color: colors.text, marginBottom: spacing.sm },
   // Selling animation
@@ -620,6 +849,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   reportHeroDay: { color: '#FFFFFFCC', fontSize: font.xs },
+  reportStrategyLabel: { color: '#FFFFFFDD', fontSize: font.xs, fontWeight: '800', marginTop: 3 },
   reportHeroEmoji: { fontSize: 56, marginVertical: spacing.sm },
   reportHeroNet: { color: '#fff', fontSize: 36, fontWeight: '900' },
   reportHeroLabel: { color: '#FFFFFFCC', fontSize: font.sm },
@@ -652,5 +882,32 @@ const styles = StyleSheet.create({
   saleTickerEmoji: { fontSize: 22 },
   saleTickerName: { color: colors.text, fontSize: font.sm, fontWeight: '800' },
   saleTickerSub: { color: colors.textMuted, fontSize: font.xs, marginTop: 2 },
+  saleTickerLoss: { color: colors.danger, fontSize: font.xs, fontWeight: '800', marginTop: 3 },
   lessonText: { color: colors.textMuted, fontSize: font.sm, lineHeight: 20, marginTop: 5 },
+  planIntro: { color: colors.textMuted, fontSize: font.xs, lineHeight: 17, marginBottom: spacing.sm },
+  planList: { gap: spacing.sm },
+  planAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: '#BDE6D1',
+    backgroundColor: '#EAF7F0',
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  planActionDanger: { borderColor: '#F3B7BD', backgroundColor: '#FFF1F2' },
+  planActionWarning: { borderColor: '#F4D6A0', backgroundColor: '#FFF8EC' },
+  planNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  planNumberText: { color: '#FFFFFF', fontSize: font.xs, fontWeight: '900' },
+  planTitle: { color: colors.text, fontSize: font.sm, fontWeight: '900' },
+  planBody: { color: colors.textMuted, fontSize: font.xs, lineHeight: 16, marginTop: 2 },
+  planArrow: { color: colors.primary, fontSize: 20, fontWeight: '900' },
 });

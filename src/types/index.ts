@@ -2,6 +2,7 @@ export type Language = 'sw' | 'en';
 
 export type Risk = 'low' | 'medium' | 'high';
 export type Demand = 'low' | 'medium' | 'high' | 'very_high';
+export type SupplierQualityTier = 'budget' | 'standard' | 'premium';
 
 export type ProductCategory =
   | 'phone_accessories'
@@ -34,6 +35,10 @@ export interface InventoryItem {
   productId: string;
   quantity: number;
   unitCost: number;
+  /** Weighted average purchase day, used for gentle stock-aging pressure. */
+  acquiredDay?: number;
+  /** Weighted batch return multiplier: lower is safer, higher means more returns. */
+  qualityReturnMultiplier?: number;
 }
 
 export type EventEffect = {
@@ -188,6 +193,9 @@ export interface MissionResult {
 
 export interface DailyReport {
   day: number;
+  strategy?: 'safe' | 'balanced' | 'aggressive';
+  missionStreak?: number;
+  missionStreakBonus?: number;
   revenue: number;
   cogs: number;
   grossProfit: number;
@@ -207,7 +215,13 @@ export interface DailyReport {
   reputationChange: number;
   bestSellerId?: string;
   worstSellerId?: string;
-  salesBreakdown?: { productId: string; sold: number; revenue: number }[];
+  salesBreakdown?: {
+    productId: string;
+    sold: number;
+    revenue: number;
+    returned?: number;
+    qualityLoss?: number;
+  }[];
   whatWentWell?: string;
   whatWentWellEn?: string;
   whatHurt?: string;
@@ -288,6 +302,8 @@ export interface GameState {
   loans: Loan[];
   missions: Mission[];
   completedMissionIds: string[];
+  missionStreak: number;
+  bestMissionStreak: number;
   weeklyGoals: WeeklyGoal[];
   completedWeeklyGoalIds: string[];
   tutorial: TutorialProgress;

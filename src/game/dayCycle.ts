@@ -16,6 +16,7 @@ import { propertyDailyIncome } from './property';
 import { decaySaturation } from './marketImpact';
 import { evaluateStory, StoryChapter } from './story';
 import { rollRivalEvent } from './rivals';
+import { SellingStrategy } from './sellingStrategy';
 
 /** Default event roll: rivals get first shot, then the streets. */
 function defaultRollEvent(state: GameState): GameEvent | undefined {
@@ -27,6 +28,7 @@ export interface DayCycleOptions {
   rollEventFn?: (state: GameState) => GameEvent | undefined;
   /** Override the sales simulation (for deterministic tests) */
   simulateFn?: (state: GameState) => SalesOutcome;
+  strategy?: SellingStrategy;
 }
 
 export interface DayCycleResult {
@@ -52,7 +54,9 @@ export interface DayCycleResult {
  */
 export function runDay(working: GameState, opts: DayCycleOptions = {}): DayCycleResult {
   const expenses = calcDailyExpenses(working);
-  const outcome = (opts.simulateFn ?? simulateDay)(working);
+  const outcome = opts.simulateFn
+    ? opts.simulateFn(working)
+    : simulateDay(working, opts.strategy ?? 'balanced');
   const pendingEvent = (opts.rollEventFn ?? defaultRollEvent)(working);
   const propertyIncome = propertyDailyIncome(working);
 
@@ -101,6 +105,7 @@ export function runDay(working: GameState, opts: DayCycleOptions = {}): DayCycle
 
   let report: DailyReport = {
     day: working.day,
+    strategy: opts.strategy ?? 'balanced',
     revenue: outcome.revenue,
     cogs: outcome.cogs,
     grossProfit,
@@ -150,7 +155,12 @@ export function runDay(working: GameState, opts: DayCycleOptions = {}): DayCycle
   };
 
   const missionEvaluation = evaluateMissions(working, report);
-  report = { ...report, missionResults: missionEvaluation.missionResults };
+  report = {
+    ...report,
+    missionResults: missionEvaluation.missionResults,
+    missionStreak: missionEvaluation.state.missionStreak,
+    missionStreakBonus: missionEvaluation.missionStreakBonus,
+  };
 
   let next: GameState = {
     ...working,
@@ -181,6 +191,8 @@ export function runDay(working: GameState, opts: DayCycleOptions = {}): DayCycle
       Math.min(100, next.reputation + (missionEvaluation.state.reputation - working.reputation)),
     ),
     completedMissionIds: missionEvaluation.state.completedMissionIds,
+    missionStreak: missionEvaluation.state.missionStreak,
+    bestMissionStreak: missionEvaluation.state.bestMissionStreak,
   };
 
   next = settleDailyLoans(next);

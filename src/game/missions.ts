@@ -96,6 +96,7 @@ function rewardText(mission: Mission): { sw: string; en: string } {
 export function evaluateMissions(state: GameState, report: DailyReport): {
   state: GameState;
   missionResults: MissionResult[];
+  missionStreakBonus: number;
 } {
   let next = { ...state };
   const missionResults = state.missions
@@ -127,5 +128,16 @@ export function evaluateMissions(state: GameState, report: DailyReport): {
       };
     });
 
-  return { state: next, missionResults };
+  const completedAll = missionResults.length > 0 && missionResults.every((mission) => mission.completed);
+  const missionStreak = completedAll ? (state.missionStreak ?? 0) + 1 : 0;
+  const missionStreakBonus = missionStreak === 3 ? 5000 : missionStreak === 7 ? 12000 : 0;
+  next = {
+    ...next,
+    missionStreak,
+    bestMissionStreak: Math.max(state.bestMissionStreak ?? 0, missionStreak),
+    cash: next.cash + missionStreakBonus,
+    xp: next.xp + (missionStreakBonus > 0 ? 20 : 0),
+  };
+
+  return { state: next, missionResults, missionStreakBonus };
 }

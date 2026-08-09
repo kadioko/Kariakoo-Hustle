@@ -28,11 +28,18 @@ Kariakoo Hustle: Biashara Empire should feel like a local Tanzanian hustle story
 - Dashboard shows runway, active debt, and the next product/upgrade/worker/location goals.
 - Product risk now creates returned/faulty units, quality losses, and reputation pressure.
 - Inventory clearance lets players recover cash from slow stock at a visible discount.
+- Supplier quality is a purchase decision: budget batches are cheaper but create more returns, while premium batches cost more and protect reputation.
+- Daily reports trace returned units and lost sales value to the exact product, making supplier-quality decisions learnable instead of mysterious.
+- Before selling, players see a break-even target based on fixed costs, property income, current prices, and the weighted margin of stock on hand.
+- Market purchases show cash remaining and protect a suggested two-day operating reserve for rent, transport, salaries, and loan payments.
+- Stock aging is gentle: stock has a three-day grace period, then gradually sells slower instead of disappearing or creating unfair losses.
 - Daily missions create short-term goals and automatic rewards after each completed day.
+- Mission streaks reward completing all daily missions consistently, with small capped bonuses at 3 and 7 days.
 - First-session tutorial steps guide players through stock, selling, reports, upgrades, and the first cash milestone.
 - Weekly goals add longer-term targets without introducing pay-to-win pressure.
 - Business advisor warnings explain cash runway, rent pressure, risky stock, slow stock, and loss recovery.
 - Reports now include day analysis: what went well, what hurt profit, worker notes, and advice for tomorrow.
+- Every daily result now ends with three contextual next actions based on profit, quality, stock, cash pressure, and reinvestment opportunities.
 
 ## Next Good Upgrades
 
@@ -57,17 +64,7 @@ The MVP has simple daily-repayment loans. A fuller system can add:
 - Reputation effect
 - Optional early repayment
 
-### 3. Product quality
-
-Risk already affects returns. A deeper future layer can add product-quality tiers:
-
-- Cheap
-- Standard
-- Premium
-
-This would make supplier choice events more meaningful.
-
-### 4. Seasonal calendar
+### 3. Seasonal calendar
 
 Add weekly or monthly modifiers:
 
@@ -75,7 +72,7 @@ Add weekly or monthly modifiers:
 - Rainy days hurt foot traffic but help umbrellas/rain products.
 - Holiday season boosts clothes, food, cosmetics, and gifts.
 
-### 5. Customer segments
+### 4. Customer segments
 
 Different locations can favor different products:
 
@@ -84,7 +81,7 @@ Different locations can favor different products:
 - Mlimani: electronics, cosmetics, fashion
 - Arusha/Zanzibar: tourism-friendly products
 
-### 6. Branch managers
+### 5. Branch managers
 
 Let unlocked locations generate smaller passive income if a branch manager is hired.
 

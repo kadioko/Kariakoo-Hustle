@@ -13,6 +13,7 @@ import {
   GameEvent,
   GameState,
   Language,
+  SupplierQualityTier,
 } from '@/types';
 import { RewardedAdType } from '@/data/monetization';
 import { createInitialState, normalizeGameState } from '@/game/saveGame';
@@ -44,6 +45,8 @@ import { buyPropertyAction } from '@/game/property';
 import { LESSON_XP, LESSONS } from '@/data/lessons';
 import { claimRewardedAdReward, AdRewardClaimResult } from '@/game/adRewards';
 import { showRewardedAd } from '@/services/adService';
+import { SellingStrategy } from '@/game/sellingStrategy';
+import { supplierQualityFor, supplierUnitPrice } from '@/game/supplierQuality';
 
 interface EndDayOutcome {
   report: DailyReport;
@@ -67,12 +70,13 @@ interface GameContextType {
     productId: string,
     qty: number,
     haggleDiscountPercent?: number,
+    qualityTier?: SupplierQualityTier,
   ) => { ok: boolean; reason?: string };
   clearInventory: (
     productId: string,
     qty: number,
   ) => { ok: boolean; reason?: string; cashGained?: number; profit?: number; discountLoss?: number };
-  endDay: () => EndDayOutcome;
+  endDay: (strategy?: SellingStrategy) => EndDayOutcome;
   applyChoice: (eventId: string, choiceId: string) => { effectText: string; effectTextEn: string };
   dismissEvent: () => void;
   buyUpgrade: (id: string) => { ok: boolean; reason?: string };
@@ -149,7 +153,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [isLoaded, state.day]);
 
   const buyProduct = useCallback(
-    (productId: string, qty: number, haggleDiscountPercent = 0) => {
+    (productId: string, qty: number, haggleDiscountPercent = 0, qualityTier: SupplierQualityTier = 'standard') => {
       const p = findProduct(productId);
       if (!p) return { ok: false, reason: 'not_found' };
       if (p.unlockLevel > state.level) return { ok: false, reason: 'not_unlocked' };
@@ -157,9 +161,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const cityFactor = cityBuyFactor(state.currentCityId, p.category);
       const saturation = buyPriceImpact(saturationFor(state, productId));
       const quotedUnit = Math.round(dayBuyPrice * cityFactor * saturation);
+      const quality = supplierQualityFor(qualityTier);
+      const supplierQuote = supplierUnitPrice(quotedUnit, qualityTier);
       const bulk = bulkDiscountRate(qty);
       const haggle = Math.max(0, Math.min(15, haggleDiscountPercent)) / 100;
-      const unitPrice = Math.max(1, Math.round(quotedUnit * (1 - bulk) * (1 - haggle)));
+      const unitPrice = Math.max(1, Math.round(supplierQuote * (1 - bulk) * (1 - haggle)));
       const totalCost = unitPrice * qty;
       if (state.cash < totalCost) return { ok: false, reason: 'not_enough_cash' };
       const cap = inventoryCapacity(state);
@@ -168,7 +174,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({
         ...s,
         cash: s.cash - totalCost,
-        inventory: addInventory(s.inventory, productId, qty, unitPrice),
+        inventory: addInventory(s.inventory, productId, qty, unitPrice, s.day, quality.returnMultiplier),
         marketSaturation: addSaturation(s.marketSaturation, productId, qty),
       }));
       return { ok: true };
@@ -211,8 +217,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [state],
   );
 
-  const endDay = useCallback((): EndDayOutcome => {
-    const result = runDay(state);
+  const endDay = useCallback((strategy: SellingStrategy = 'balanced'): EndDayOutcome => {
+    const result = runDay(state, { strategy });
     setState(result.state);
     return {
       report: result.report,
@@ -450,10 +456,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({
           ...s,
           inventory: addInventory(
-            addInventory(addInventory(s.inventory, 'phone_case', 5, 3000), 'charger', 4, 6000),
+            addInventory(addInventory(s.inventory, 'phone_case', 5, 3000, s.day), 'charger', 4, 6000, s.day),
             'earphones',
             4,
             7000,
+            s.day,
           ),
         }));
         return success('Starter stock imeongezwa kwenye inventory.', 'Starter stock added to inventory.');

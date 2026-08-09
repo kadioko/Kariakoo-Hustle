@@ -20,6 +20,10 @@ export function buildReportInsights(
   const trendProfit = previous ? report.netProfit - previous.netProfit : undefined;
   const best = report.bestSellerId ? findProduct(report.bestSellerId) : undefined;
   const worst = report.worstSellerId ? findProduct(report.worstSellerId) : undefined;
+  const qualityProblem = [...(report.salesBreakdown ?? [])]
+    .filter((sale) => (sale.returned ?? 0) > 0)
+    .sort((a, b) => (b.qualityLoss ?? 0) - (a.qualityLoss ?? 0))[0];
+  const qualityProduct = qualityProblem ? findProduct(qualityProblem.productId) : undefined;
 
   let whatWentWell = report.netProfit >= 0
     ? 'Umefunga siku bila hasara. Cash flow iko hai.'
@@ -35,7 +39,10 @@ export function buildReportInsights(
 
   let whatHurt = 'Hakuna kitu kikubwa kilichouma sana leo.';
   let whatHurtEn = 'Nothing major hurt the business today.';
-  if (report.expenses > report.grossProfit) {
+  if (qualityProduct && qualityProblem) {
+    whatHurt = `${qualityProduct.name}: vipande ${qualityProblem.returned ?? 0} vimerudishwa. Kagua quality ya supplier.`;
+    whatHurtEn = `${qualityProduct.nameEn}: ${qualityProblem.returned ?? 0} units were returned. Review supplier quality.`;
+  } else if (report.expenses > report.grossProfit) {
     whatHurt = 'Matumizi yamekula sehemu kubwa ya gross profit.';
     whatHurtEn = 'Expenses ate a big part of gross profit.';
   } else if ((report.qualityLoss ?? 0) > 0) {

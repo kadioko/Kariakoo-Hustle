@@ -168,6 +168,8 @@ export function addInventory(
   productId: string,
   qty: number,
   unitCost: number,
+  acquiredDay?: number,
+  qualityReturnMultiplier: number = 1,
 ): InventoryItem[] {
   const next = [...inventory];
   const idx = next.findIndex((i) => i.productId === productId);
@@ -176,13 +178,26 @@ export function addInventory(
     const totalQty = existing.quantity + qty;
     const blended =
       (existing.quantity * existing.unitCost + qty * unitCost) / totalQty;
+    const blendedQuality =
+      (existing.quantity * (existing.qualityReturnMultiplier ?? 1) + qty * qualityReturnMultiplier) / totalQty;
+    const mergedAcquiredDay = acquiredDay && existing.acquiredDay
+      ? Math.round((existing.quantity * existing.acquiredDay + qty * acquiredDay) / totalQty)
+      : acquiredDay ?? existing.acquiredDay;
     next[idx] = {
       productId,
       quantity: totalQty,
       unitCost: Math.round(blended),
+      ...(mergedAcquiredDay ? { acquiredDay: mergedAcquiredDay } : {}),
+      ...(Math.abs(blendedQuality - 1) > 0.01 ? { qualityReturnMultiplier: blendedQuality } : {}),
     };
   } else {
-    next.push({ productId, quantity: qty, unitCost });
+    next.push({
+      productId,
+      quantity: qty,
+      unitCost,
+      ...(acquiredDay ? { acquiredDay } : {}),
+      ...(Math.abs(qualityReturnMultiplier - 1) > 0.01 ? { qualityReturnMultiplier } : {}),
+    });
   }
   return next;
 }

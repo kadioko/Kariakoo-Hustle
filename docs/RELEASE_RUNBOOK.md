@@ -1,6 +1,9 @@
 # Android Release Runbook
 
-This runbook covers the path from local repo to Google Play AAB.
+This runbook covers the product and Play Console path from local repo to release.
+Use `docs/ANDROID_RELEASE_BUILD.md` as the canonical technical build procedure,
+including versioning, validation, EAS commands, artifact downloads, signing
+verification, and the current AdMob compatibility pin.
 
 ## Current Build Setup
 
@@ -17,8 +20,9 @@ Run:
 ```bash
 npm install
 npx expo install --check
-npm run tsc
+npm run typecheck
 npm test
+npx expo-doctor
 ```
 
 Expected current status:
@@ -64,10 +68,11 @@ npx eas-cli build --profile preview --platform android
 Only build the production AAB after physical Android QA passes.
 
 ```bash
-npx eas-cli build --profile production --platform android
+npx eas-cli@latest build --profile production --platform android --non-interactive --wait
 ```
 
-The output should be an `.aab` suitable for Play Console.
+The output should be an `.aab` suitable for Play Console. Follow the download and
+certificate-verification steps in `docs/ANDROID_RELEASE_BUILD.md` before upload.
 
 ## Submission
 

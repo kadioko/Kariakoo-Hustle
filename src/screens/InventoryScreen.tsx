@@ -17,6 +17,8 @@ import { Button } from '@/components/Button';
 import { clearanceUnitPrice } from '@/game/economy';
 import { dayPriceFor } from '@/game/marketPrices';
 import { buzz } from '@/utils/haptics';
+import { stockAgeDays, stockAgeTone } from '@/game/stockAging';
+import { supplierQualityFor, supplierTierForReturnMultiplier } from '@/game/supplierQuality';
 
 type SortKey = 'name' | 'value' | 'qty' | 'profit';
 
@@ -180,6 +182,9 @@ export const InventoryScreen: React.FC = () => {
               const marginPct = Math.round(((daySell - item.unitCost) / item.unitCost) * 100);
               const clearancePrice = clearanceUnitPrice(product, item.unitCost, daySell);
               const clearanceAll = clearancePrice * item.quantity;
+              const age = stockAgeDays(item, state.day);
+              const ageTone = stockAgeTone(age);
+              const quality = supplierQualityFor(supplierTierForReturnMultiplier(item.qualityReturnMultiplier));
 
               return (
                 <Card key={item.productId}>
@@ -198,7 +203,26 @@ export const InventoryScreen: React.FC = () => {
                           bg={colors.success + '22'}
                           color={colors.success}
                         />
+                        <Pill
+                          label={lang === 'sw' ? quality.name : quality.nameEn}
+                          bg={quality.id === 'budget' ? colors.warning + '22' : quality.id === 'premium' ? colors.success + '22' : colors.info + '22'}
+                          color={quality.id === 'budget' ? colors.warning : quality.id === 'premium' ? colors.success : colors.info}
+                        />
+                        {age > 0 && (
+                          <Pill
+                            label={lang === 'sw' ? `Imekaa siku ${age}` : `${age} days in stock`}
+                            bg={(ageTone === 'old' ? colors.danger : colors.warning) + '22'}
+                            color={ageTone === 'old' ? colors.danger : colors.warning}
+                          />
+                        )}
                       </View>
+                      {ageTone !== 'fresh' && (
+                        <Text style={styles.agingHint}>
+                          {lang === 'sw'
+                            ? 'Stock hii imekaa; fikiria punguzo au badilisha mzunguko.'
+                            : 'This stock is aging; consider a discount or rotate your mix.'}
+                        </Text>
+                      )}
                     </View>
                     <View style={styles.qtyBadge}>
                       <Text style={styles.qtyNum}>{item.quantity}</Text>
@@ -309,5 +333,6 @@ const styles = StyleSheet.create({
   },
   clearanceTitle: { fontSize: font.xs, color: colors.text, fontWeight: '800' },
   clearanceText: { fontSize: font.xs, color: colors.textMuted, marginTop: 2 },
+  agingHint: { fontSize: 10, color: colors.warning, fontWeight: '700', marginTop: 4, lineHeight: 15 },
   clearanceActions: { flexDirection: 'row', gap: spacing.xs },
 });

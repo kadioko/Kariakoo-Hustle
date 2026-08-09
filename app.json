@@ -2,21 +2,16 @@
   "expo": {
     "name": "Kariakoo Hustle",
     "slug": "kariakoo-hustle",
-    "version": "1.0.1",
+    "version": "1.4.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "backgroundColor": "#0E7C5A",
-      "resizeMode": "contain"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
     "android": {
       "package": "com.kadioko.kariakoohustle",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0E7C5A"
@@ -35,6 +30,14 @@
         {
           "androidAppId": "ca-app-pub-1484098434630929~6907155869",
           "delayAppMeasurementInit": true
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "backgroundColor": "#0E7C5A",
+          "imageWidth": 200
         }
       ],
       "expo-status-bar"

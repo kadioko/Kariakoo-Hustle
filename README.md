@@ -13,6 +13,12 @@ The MVP is offline-friendly and uses AsyncStorage only. There is no backend, no 
 | Swahili-first UI with English switch | Done |
 | 30 products across 10 categories (unlocks to level 10) | Done |
 | Deterministic daily price fluctuation (buy dips, sell spikes) | Done |
+| Gentle stock aging - stale batches gradually sell slower | Done |
+| Supplier quality tiers - budget, standard, and premium purchase tradeoffs | Done |
+| Contextual tomorrow plan - three actions generated from each daily report | Done |
+| Product-level quality reporting - returns and lost value traced to each item | Done |
+| Pre-sale break-even planner - costs, margins, and minimum successful sales | Done |
+| Operating-reserve purchase planner - protects two days of business expenses | Done |
 | Dynamic supply & demand — your buying saturates the market | Done |
 | Supplier negotiation mini-game (haggle on 10+ unit orders) | Done |
 | Trade routes: Dar, Arusha, Mwanza, Zanzibar with regional prices & travel risk | Done |
@@ -26,6 +32,7 @@ The MVP is offline-friendly and uses AsyncStorage only. There is no backend, no 
 | Business School: 9 bilingual financial literacy lessons | Done |
 | 33+ random street events, including choice events | Done |
 | Daily missions & weekly goals with auto rewards | Done |
+| Mission streaks with capped 3-day and 7-day bonuses | Done |
 | Daily P&L reports, 7-day profit chart, business advisor | Done |
 | 12 upgrades · 7 workers (improve with tenure) · 10 locations | Done |
 | 14 achievements with rewards | Done |
@@ -66,7 +73,7 @@ npx expo start
 ### Type Check & Tests
 
 ```bash
-npm run tsc    # TypeScript check
+npm run typecheck    # TypeScript check
 npm test       # game-logic test suite (node:test via tsx)
 ```
 
@@ -160,11 +167,11 @@ Runway is shown on the dashboard and estimates how many days current cash can co
 
 ### Daily missions
 
-Each day generates two small missions based on level, such as hitting revenue, units sold, net profit, or avoiding quality losses. Missions are evaluated when the day ends and rewards are paid automatically.
+Each day generates two small missions based on level, such as hitting revenue, units sold, net profit, or avoiding quality losses. Missions are evaluated when the day ends and rewards are paid automatically. Completing all missions for three or seven consecutive days adds a small capped streak bonus; missing a day resets only the mission streak.
 
 ### Save system
 
-The app saves locally through AsyncStorage (schema v9). Saves include:
+The app saves locally through AsyncStorage (schema v12). Saves include:
 
 - Cash, day, level, XP, reputation, streaks, legacy level
 - Inventory and market saturation
@@ -172,6 +179,7 @@ The app saves locally through AsyncStorage (schema v9). Saves include:
 - Achievements, story progress, lessons read
 - Reports and lifetime totals
 - Active daily missions, weekly goals, and loans
+- Current and best mission streaks
 - Settings and language
 - Save version metadata
 
@@ -280,12 +288,15 @@ t('new_key', language)
 
 ## Build Notes
 
-This prototype is Expo-managed and Android-first. For a production APK/AAB, use EAS Build:
+This project is Expo-managed and Android-first. The canonical release procedure
+is in [`docs/ANDROID_RELEASE_BUILD.md`](docs/ANDROID_RELEASE_BUILD.md). It covers
+version codes, validation, physical-device QA, EAS builds, AAB downloads,
+certificate checks, and Play Console upload.
+
+Quick production command after completing the release checklist:
 
 ```bash
-npm install -g eas-cli
-eas login
-eas build --platform android
+npx eas-cli@latest build --platform android --profile production --non-interactive --wait
 ```
 
 ## Design Guardrails

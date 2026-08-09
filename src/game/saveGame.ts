@@ -3,7 +3,7 @@ import { generateDailyMissions } from './missions';
 import { generateWeeklyGoals } from './weeklyGoals';
 import { STARTING_CASH } from './economy';
 
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 12;
 
 /** Returns a finite, safe number or the fallback (guards against NaN/Infinity in corrupt saves). */
 function safeNumber(v: unknown, fallback: number): number {
@@ -25,6 +25,8 @@ export function createInitialState(): GameState {
     loans: [],
     missions: generateDailyMissions(1, 1),
     completedMissionIds: [],
+    missionStreak: 0,
+    bestMissionStreak: 0,
     weeklyGoals: generateWeeklyGoals(1, 1, 0),
     completedWeeklyGoalIds: [],
     tutorial: { reportViewed: false },
@@ -109,7 +111,14 @@ export function normalizeGameState(raw: Partial<GameState> | null | undefined): 
         : initial.lastMarketInsiderTip,
     deliverySpeedUntilDay: Math.max(0, Math.round(safeNumber(raw.deliverySpeedUntilDay, 0))),
     adRecoveryTotal: Math.max(0, safeNumber(raw.adRecoveryTotal, 0)),
-    inventory: Array.isArray(raw.inventory) ? raw.inventory : initial.inventory,
+    inventory: Array.isArray(raw.inventory)
+      ? raw.inventory.map(({ qualityReturnMultiplier, ...item }) => {
+          const quality = safeNumber(qualityReturnMultiplier, 1);
+          return Math.abs(quality - 1) > 0.01
+            ? { ...item, qualityReturnMultiplier: Math.max(0.4, Math.min(2, quality)) }
+            : item;
+        })
+      : initial.inventory,
     upgrades: Array.isArray(raw.upgrades) ? raw.upgrades : initial.upgrades,
     workers: Array.isArray(raw.workers) ? raw.workers : initial.workers,
     loans: Array.isArray(raw.loans) ? raw.loans : initial.loans,
@@ -120,6 +129,8 @@ export function normalizeGameState(raw: Partial<GameState> | null | undefined): 
     completedMissionIds: Array.isArray(raw.completedMissionIds)
       ? raw.completedMissionIds
       : initial.completedMissionIds,
+    missionStreak: Math.max(0, Math.round(safeNumber(raw.missionStreak, 0))),
+    bestMissionStreak: Math.max(0, Math.round(safeNumber(raw.bestMissionStreak, 0))),
     weeklyGoals:
       Array.isArray(raw.weeklyGoals) && raw.weeklyGoals.length > 0
         ? raw.weeklyGoals

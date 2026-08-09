@@ -16,8 +16,8 @@ import { useToast } from '@/components/Toast';
 import { t } from '@/utils/i18n';
 import { formatTZS } from '@/utils/format';
 import { PRODUCTS } from '@/data/products';
-import { Product, ProductCategory } from '@/types';
-import { bulkDiscountRate, inventoryCapacity, inventoryUnits } from '@/game/economy';
+import { Product, ProductCategory, SupplierQualityTier } from '@/types';
+import { bulkDiscountRate, calcDailyExpenses, inventoryCapacity, inventoryUnits } from '@/game/economy';
 import { seasonBoostFor, seasonForDay } from '@/game/seasons';
 import { cityBuyFactor, findCity } from '@/game/cities';
 import { buyPriceImpact, saturationFor, saturationLevel } from '@/game/marketImpact';
@@ -30,6 +30,9 @@ import { StatRow } from '@/components/StatRow';
 import { getProductInsight } from '@/game/productInsights';
 import { DayPrice, dayPriceFor, isExpensive, isGoodDeal } from '@/game/marketPrices';
 import { buzz } from '@/utils/haptics';
+import { marketOpportunityScore, rankMarketProducts } from '@/game/marketIntelligence';
+import { purchaseCashPosition, safePurchaseQuantity } from '@/game/purchasePlanning';
+import { SUPPLIER_QUALITIES, supplierQualityFor, supplierUnitPrice } from '@/game/supplierQuality';
 
 const CATEGORIES: { id: 'all' | ProductCategory; sw: string; en: string; emoji: string }[] = [
   { id: 'all', sw: 'Zote', en: 'All', emoji: '🛍️' },
@@ -66,9 +69,10 @@ interface BuyModalProps {
   quotedUnit: number;
   reputation: number;
   onClose: () => void;
-  onBuy: (qty: number, haggleDiscountPercent: number) => void;
+  onBuy: (qty: number, haggleDiscountPercent: number, qualityTier: SupplierQualityTier) => void;
   freeSlots: number;
   cash: number;
+  operatingReserve: number;
   ownedQty: number;
   lang: 'sw' | 'en';
 }
@@ -89,13 +93,17 @@ const BuyModal: React.FC<BuyModalProps> = ({
   onBuy,
   freeSlots,
   cash,
+  operatingReserve,
   ownedQty,
   lang,
 }) => {
   const [qty, setQty] = useState(1);
   const [haggle, setHaggle] = useState<HaggleUiState>({ discount: 0, round: 1, locked: false });
+  const [qualityTier, setQualityTier] = useState<SupplierQualityTier>('standard');
+  const quality = supplierQualityFor(qualityTier);
+  const supplierQuote = supplierUnitPrice(quotedUnit, qualityTier);
   const discount = bulkDiscountRate(qty);
-  const unitPrice = Math.max(1, Math.round(quotedUnit * (1 - discount) * (1 - haggle.discount / 100)));
+  const unitPrice = Math.max(1, Math.round(supplierQuote * (1 - discount) * (1 - haggle.discount / 100)));
   const total = qty * unitPrice;
 
   const canHaggle = qty >= HAGGLE_MIN_QTY && !haggle.locked && haggle.round <= MAX_ROUNDS;
@@ -142,7 +150,9 @@ const BuyModal: React.FC<BuyModalProps> = ({
   const margin = price.sellPrice - unitPrice;
   const marginPercent = unitPrice > 0 ? Math.round((margin / unitPrice) * 100) : 0;
   const insight = getProductInsight(product, lang);
-  const maxBuyable = Math.min(freeSlots, Math.floor(cash / quotedUnit));
+  const maxBuyable = Math.min(freeSlots, Math.floor(cash / supplierQuote));
+  const safeQty = safePurchaseQuantity(cash, supplierQuote, freeSlots, operatingReserve);
+  const cashPosition = purchaseCashPosition(cash, total, operatingReserve);
   const hasBuyingPower = maxBuyable > 0;
   const cashTieUpPercent = cash > 0 ? total / cash : 1;
   const tiesUpCash = cashTieUpPercent >= 0.45;
@@ -150,6 +160,11 @@ const BuyModal: React.FC<BuyModalProps> = ({
   const adjust = (delta: number) => {
     if (!hasBuyingPower) return;
     setQty((q) => Math.max(1, Math.min(maxBuyable, q + delta)));
+  };
+
+  const selectQuality = (tier: SupplierQualityTier) => {
+    setQualityTier(tier);
+    setHaggle({ discount: 0, round: 1, locked: false });
   };
 
   return (
@@ -178,7 +193,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
           <Card>
             <StatRow
               label={`${t('cost', lang)} ${price.buyTrend === 'up' ? '▲' : price.buyTrend === 'down' ? '▼' : ''}`}
-              value={formatTZS(quotedUnit)}
+              value={formatTZS(supplierQuote)}
             />
             {quotedUnit !== price.buyPrice && (
               <Text style={{ fontSize: font.xs, color: quotedUnit < price.buyPrice ? colors.success : colors.warning, marginBottom: 4 }}>
@@ -237,6 +252,35 @@ const BuyModal: React.FC<BuyModalProps> = ({
             </View>
           </Card>
 
+          <Card>
+            <Text style={styles.qtyLabel}>{lang === 'sw' ? 'Quality ya Supplier' : 'Supplier Quality'}</Text>
+            <View style={styles.qualityRow}>
+              {SUPPLIER_QUALITIES.map((option) => {
+                const selected = qualityTier === option.id;
+                return (
+                  <TouchableOpacity
+                    key={option.id}
+                    onPress={() => selectQuality(option.id)}
+                    style={[styles.qualityOption, selected && styles.qualityOptionActive]}
+                  >
+                    <Text style={[styles.qualityName, selected && styles.qualityTextActive]} numberOfLines={1}>
+                      {lang === 'sw' ? option.name : option.nameEn}
+                    </Text>
+                    <Text style={[styles.qualityDetail, selected && styles.qualityTextActive]} numberOfLines={2}>
+                      {lang === 'sw' ? option.detail : option.detailEn}
+                    </Text>
+                    <Text style={[styles.qualityPrice, selected && styles.qualityTextActive]}>
+                      {formatTZS(supplierUnitPrice(quotedUnit, option.id))}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={styles.qualityHint}>
+              {lang === 'sw' ? `${quality.name}: ${quality.detail}` : `${quality.nameEn}: ${quality.detailEn}`}
+            </Text>
+          </Card>
+
           {/* Quantity picker */}
           <Card>
             <Text style={styles.qtyLabel}>
@@ -259,7 +303,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
             </View>
 
             <View style={styles.presets}>
-              {[1, 5, 10, maxBuyable]
+              {[safeQty, 1, 5, 10, maxBuyable]
                 .filter((v) => v > 0)
                 .filter((v, i, a) => a.indexOf(v) === i)
                 .map((n) => (
@@ -269,8 +313,10 @@ const BuyModal: React.FC<BuyModalProps> = ({
                   onPress={() => setQty(Math.max(1, Math.min(maxBuyable, n)))}
                 >
                   <Text style={[styles.presetText, qty === n && { color: '#fff' }]}>
-                    {n === maxBuyable && n !== 1 && n !== 5 && n !== 10
-                      ? lang === 'sw' ? 'Max' : 'Max'
+                    {n === safeQty
+                      ? lang === 'sw' ? 'Salama' : 'Safe'
+                      : n === maxBuyable
+                      ? 'Max'
                       : String(n)}
                   </Text>
                 </TouchableOpacity>
@@ -353,6 +399,17 @@ const BuyModal: React.FC<BuyModalProps> = ({
               highlight={canAfford && canFit}
             />
             <StatRow
+              label={lang === 'sw' ? 'Cash baada ya kununua' : 'Cash after purchase'}
+              value={formatTZS(cashPosition.cashAfterPurchase)}
+              positive={cashPosition.safety === 'safe'}
+              negative={cashPosition.safety === 'unsafe'}
+            />
+            <StatRow
+              label={lang === 'sw' ? 'Akiba ya siku 2' : 'Two-day reserve'}
+              value={formatTZS(cashPosition.operatingReserve)}
+              highlight={cashPosition.safety === 'safe'}
+            />
+            <StatRow
               label={lang === 'sw' ? 'Faida Inayotarajiwa' : 'Expected Profit'}
               value={`+${formatTZS(qty * margin)}`}
               positive
@@ -374,6 +431,13 @@ const BuyModal: React.FC<BuyModalProps> = ({
                   : 'This batch ties up a lot of cash. Keep a cushion for rent and transport.'}
               </Text>
             )}
+            {canAfford && canFit && cashPosition.reserveShortfall > 0 && (
+              <Text style={{ color: cashPosition.safety === 'unsafe' ? colors.danger : colors.warning, fontSize: font.xs, marginTop: 4, lineHeight: 18 }}>
+                {lang === 'sw'
+                  ? `Order hii inapunguza akiba ya biashara kwa ${formatTZS(cashPosition.reserveShortfall)}.`
+                  : `This order leaves your operating reserve short by ${formatTZS(cashPosition.reserveShortfall)}.`}
+              </Text>
+            )}
           </Card>
 
           <Button
@@ -383,7 +447,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
               ? t('not_enough_cash', lang)
               : t('capacity_full', lang)}
             disabled={!canAfford || !canFit}
-            onPress={() => { onBuy(qty, haggle.discount); onClose(); }}
+            onPress={() => { onBuy(qty, haggle.discount, qualityTier); onClose(); }}
             size="lg"
             fullWidth
           />
@@ -398,12 +462,14 @@ export const MarketScreen: React.FC = () => {
   const toast = useToast();
   const [cat, setCat] = useState<'all' | ProductCategory>('all');
   const [search, setSearch] = useState('');
+  const [sortMode, setSortMode] = useState<'smart' | 'catalog'>('smart');
   const [selected, setSelected] = useState<Product | null>(null);
   const lang = language;
 
   const cap = inventoryCapacity(state);
   const used = inventoryUnits(state);
   const freeSlots = cap - used;
+  const operatingReserve = calcDailyExpenses(state).total * 2;
 
   const ownedQtyMap = useMemo(() => {
     const m: Record<string, number> = {};
@@ -412,7 +478,7 @@ export const MarketScreen: React.FC = () => {
   }, [state.inventory]);
 
   const visible = useMemo(() => {
-    return PRODUCTS.filter((p) => {
+    const filtered = PRODUCTS.filter((p) => {
       const inCat = cat === 'all' || p.category === cat;
       const searchLower = search.toLowerCase();
       const nameMatch =
@@ -420,7 +486,14 @@ export const MarketScreen: React.FC = () => {
         p.nameEn.toLowerCase().includes(searchLower);
       return inCat && (search === '' || nameMatch);
     });
-  }, [cat, search]);
+    if (sortMode === 'catalog') return filtered;
+    return rankMarketProducts(filtered, (product) => marketOpportunityScore(
+      product,
+      dayPriceFor(product, state.day),
+      seasonBoostFor(state.day, product.category),
+      saturationFor(state, product.id),
+    ));
+  }, [cat, search, sortMode, state.day, state.marketSaturation]);
 
   const quotedFor = (p: Product): number => {
     const day = dayPriceFor(p, state.day).buyPrice;
@@ -429,10 +502,15 @@ export const MarketScreen: React.FC = () => {
     );
   };
 
-  const handleBuy = (productId: string, qty: number, haggleDiscount = 0) => {
+  const handleBuy = (
+    productId: string,
+    qty: number,
+    haggleDiscount = 0,
+    qualityTier: SupplierQualityTier = 'standard',
+  ) => {
     const p = PRODUCTS.find((x) => x.id === productId);
     const name = p ? (lang === 'en' ? p.nameEn : p.name) : '';
-    const res = buyProduct(productId, qty, haggleDiscount);
+    const res = buyProduct(productId, qty, haggleDiscount, qualityTier);
     if (res.ok) {
       buzz(state.settings, 'tap');
       toast.success(
@@ -526,6 +604,27 @@ export const MarketScreen: React.FC = () => {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
+      <View style={styles.sortRow}>
+        <Text style={styles.sortLabel}>
+          {lang === 'sw' ? 'Mpangilio wa soko' : 'Market view'}
+        </Text>
+        <View style={styles.sortButtons}>
+          {(['smart', 'catalog'] as const).map((mode) => (
+            <TouchableOpacity
+              key={mode}
+              onPress={() => setSortMode(mode)}
+              style={[styles.sortButton, sortMode === mode && styles.sortButtonActive]}
+            >
+              <Text style={[styles.sortButtonText, sortMode === mode && styles.sortButtonTextActive]}>
+                {mode === 'smart'
+                  ? lang === 'sw' ? 'Chaguo Bora' : 'Smart picks'
+                  : lang === 'sw' ? 'Zote' : 'All'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
 
       {/* Product grid */}
       <ScrollView
@@ -660,9 +759,10 @@ export const MarketScreen: React.FC = () => {
           quotedUnit={quotedFor(selected)}
           reputation={state.reputation}
           onClose={() => setSelected(null)}
-          onBuy={(qty, haggleDiscount) => handleBuy(selected.id, qty, haggleDiscount)}
+          onBuy={(qty, haggleDiscount, qualityTier) => handleBuy(selected.id, qty, haggleDiscount, qualityTier)}
           freeSlots={freeSlots}
           cash={state.cash}
+          operatingReserve={operatingReserve}
           ownedQty={ownedQtyMap[selected.id] ?? 0}
           lang={lang}
         />
@@ -779,6 +879,27 @@ const styles = StyleSheet.create({
   },
   quickBuyDisabled: { backgroundColor: '#C5C5C5' },
   quickBuyText: { color: '#fff', fontSize: font.xs, fontWeight: '900' },
+  sortRow: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  sortLabel: { color: colors.textMuted, fontSize: font.xs, fontWeight: '700' },
+  sortButtons: { flexDirection: 'row', gap: spacing.xs },
+  sortButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    backgroundColor: colors.card,
+  },
+  sortButtonActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  sortButtonText: { color: colors.textMuted, fontSize: font.xs, fontWeight: '800' },
+  sortButtonTextActive: { color: '#fff' },
   lockOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: '#FFFFFFCC',
@@ -826,4 +947,20 @@ const styles = StyleSheet.create({
   insightScore: { fontSize: font.xxl, fontWeight: '900', minWidth: 42, textAlign: 'center' },
   insightLabel: { fontSize: font.sm, fontWeight: '900', color: colors.text },
   insightDesc: { fontSize: font.xs, color: colors.textMuted, lineHeight: 17, marginTop: 2 },
+  qualityRow: { flexDirection: 'row', gap: spacing.xs },
+  qualityOption: {
+    flex: 1,
+    minWidth: 0,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    gap: 3,
+  },
+  qualityOptionActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  qualityName: { color: colors.text, fontSize: 10, fontWeight: '900' },
+  qualityDetail: { color: colors.textMuted, fontSize: 9, lineHeight: 13, minHeight: 26 },
+  qualityPrice: { color: colors.primaryDark, fontSize: 10, fontWeight: '900', marginTop: 2 },
+  qualityTextActive: { color: '#FFFFFF' },
+  qualityHint: { color: colors.textMuted, fontSize: font.xs, lineHeight: 17, marginTop: spacing.sm },
 });

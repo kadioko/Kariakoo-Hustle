@@ -8,6 +8,8 @@ import { seasonBoostFor } from './seasons';
 import { legacySalesBoost } from './prestige';
 import { cityDemandFactor } from './cities';
 import { saturationFor, sellRateImpact } from './marketImpact';
+import { SellingStrategy } from './sellingStrategy';
+import { stockAgeSellRateImpact } from './stockAging';
 
 /** Workers get +0.5% sales boost per 10 days of tenure, capped at +5% each. */
 export function workerTenureBoost(state: GameState, workerId: string): number {
@@ -41,7 +43,13 @@ export interface SalesOutcome {
   unitsRemaining: number;
   bestSellerId?: string;
   worstSellerId?: string;
-  perProduct: { productId: string; sold: number; revenue: number }[];
+  perProduct: {
+    productId: string;
+    sold: number;
+    revenue: number;
+    returned?: number;
+    qualityLoss?: number;
+  }[];
 }
 
 function aggregateBoosts(state: GameState) {
@@ -82,19 +90,21 @@ function aggregateBoosts(state: GameState) {
   };
 }
 
-function returnedUnitsForSale(product: Product, sold: number, protection: number): number {
+function returnedUnitsForSale(product: Product, sold: number, protection: number, riskMultiplier: number): number {
   if (sold <= 0) return 0;
   const variance = 0.75 + Math.random() * 0.6;
-  const returnRate = RETURN_BASE[product.risk] * (1 - protection) * variance;
+  const returnRate = RETURN_BASE[product.risk] * (1 - protection) * riskMultiplier * variance;
   const expected = sold * returnRate;
   const guaranteed = Math.floor(expected);
   const extra = Math.random() < expected - guaranteed ? 1 : 0;
   return Math.min(sold, guaranteed + extra);
 }
 
-export function simulateDay(state: GameState): SalesOutcome {
+export function simulateDay(state: GameState, strategy: SellingStrategy = 'balanced'): SalesOutcome {
   const { salesMultiplier, demandMultiplier, qualityProtection } = aggregateBoosts(state);
   const loc = findLocation(state.currentLocationId);
+  const strategyDemand = strategy === 'safe' ? 0.9 : strategy === 'aggressive' ? 1.15 : 1;
+  const strategyRisk = strategy === 'safe' ? 0.65 : strategy === 'aggressive' ? 1.35 : 1;
 
   const newInventory: InventoryItem[] = [];
   const perProduct: SalesOutcome['perProduct'] = [];
@@ -115,10 +125,16 @@ export function simulateDay(state: GameState): SalesOutcome {
     const categoryBoost = loc?.categoryBoosts?.[product.category] ?? 0;
     const seasonBoost = seasonBoostFor(state.day, product.category);
     const saturationDrag = sellRateImpact(saturationFor(state, item.productId));
-    const sellRate = Math.min(1, baseRate * salesMultiplier * demandMultiplier * (1 + categoryBoost) * (1 + seasonBoost) * saturationDrag * variance);
+    const agingDrag = stockAgeSellRateImpact(item, state.day);
+    const sellRate = Math.min(1, baseRate * salesMultiplier * demandMultiplier * strategyDemand * (1 + categoryBoost) * (1 + seasonBoost) * saturationDrag * agingDrag * variance);
     const sold = Math.min(item.quantity, Math.floor(item.quantity * sellRate));
 
-    const returned = returnedUnitsForSale(product, sold, qualityProtection);
+    const returned = returnedUnitsForSale(
+      product,
+      sold,
+      qualityProtection,
+      strategyRisk * (item.qualityReturnMultiplier ?? 1),
+    );
     const netSold = sold - returned;
     const daySellPrice = dayPriceFor(product, state.day).sellPrice;
 
@@ -130,9 +146,12 @@ export function simulateDay(state: GameState): SalesOutcome {
       unitsSold += netSold;
       returnedUnits += returned;
       qualityLoss += loss;
-      if (netSold > 0) {
-        perProduct.push({ productId: item.productId, sold: netSold, revenue: r });
-      }
+      perProduct.push({
+        productId: item.productId,
+        sold: netSold,
+        revenue: r,
+        ...(returned > 0 ? { returned, qualityLoss: loss } : {}),
+      });
     }
     const remaining = item.quantity - sold;
     if (remaining > 0) {
@@ -142,8 +161,9 @@ export function simulateDay(state: GameState): SalesOutcome {
 
   let bestSellerId: string | undefined;
   let worstSellerId: string | undefined;
-  if (perProduct.length > 0) {
-    const sorted = [...perProduct].sort((a, b) => b.sold - a.sold);
+  const productsWithSales = perProduct.filter((product) => product.sold > 0);
+  if (productsWithSales.length > 0) {
+    const sorted = [...productsWithSales].sort((a, b) => b.sold - a.sold);
     bestSellerId = sorted[0].productId;
     if (sorted.length > 1) worstSellerId = sorted[sorted.length - 1].productId;
   }
