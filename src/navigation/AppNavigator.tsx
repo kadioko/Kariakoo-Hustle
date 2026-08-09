@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SplashScreen } from '@/screens/SplashScreen';
 import { MainMenuScreen } from '@/screens/MainMenuScreen';
@@ -58,6 +59,9 @@ function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
 
 function MainTabs() {
   const { language } = useGame();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, 8);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -65,8 +69,8 @@ function MainTabs() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          height: 64,
-          paddingBottom: 8,
+          height: 56 + bottomPadding,
+          paddingBottom: bottomPadding,
           paddingTop: 6,
           borderTopWidth: 1,
           borderTopColor: colors.border,

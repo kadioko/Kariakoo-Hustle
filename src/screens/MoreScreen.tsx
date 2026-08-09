@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors, font, radius, shadow, spacing } from '@/theme';
@@ -96,7 +96,11 @@ export const MoreScreen: React.FC = () => {
         <Text style={styles.sub}>{state.businessName}</Text>
       </View>
 
-      <View style={styles.list}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+      >
         <MenuItem
           emoji="👔"
           label={t('hire_workers', lang)}
@@ -180,7 +184,7 @@ export const MoreScreen: React.FC = () => {
           label={t('menu_settings', lang)}
           onPress={() => nav.navigate('Settings')}
         />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -196,7 +200,13 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: font.xl, fontWeight: '800', color: colors.text },
   sub: { fontSize: font.sm, color: colors.textMuted, marginTop: 2 },
-  list: { padding: spacing.lg, gap: spacing.sm },
+  scroll: { flex: 1 },
+  list: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.sm,
+  },
   menuItem: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,

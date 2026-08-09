@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Animated, Share, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, font, radius, spacing } from '@/theme';
 import { useGame } from '@/state/GameContext';
 import { t } from '@/utils/i18n';
@@ -22,7 +23,7 @@ export const MainMenuScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <View style={styles.hero}>
         <Text style={styles.emoji}>🛒</Text>
         <Text style={styles.title}>{t('app_title', language)}</Text>
@@ -84,7 +85,7 @@ export const MainMenuScreen: React.FC = () => {
       </View>
 
       <Text style={styles.footer}>© 2025 Kariakoo Hustle. Pesa za Bandia Tu.</Text>
-    </View>
+    </SafeAreaView>
   );
 };
 

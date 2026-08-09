@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, font, radius, spacing } from '@/theme';
 import { useGame } from '@/state/GameContext';
 import { Button } from '@/components/Button';
@@ -94,7 +95,7 @@ export const OnboardingScreen: React.FC = () => {
 
   if (step === 'language') {
     return (
-      <View style={styles.root}>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <Text style={styles.welcomeEmoji}>🛒</Text>
         <Text style={styles.welcome}>Kariakoo Hustle</Text>
         <Text style={styles.welcomeSub}>Chagua lugha ya kucheza / Choose your game language</Text>
@@ -128,14 +129,14 @@ export const OnboardingScreen: React.FC = () => {
             <Text style={styles.languageArrow}>→</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (step === 'tips') {
     const tip = TIPS[tipIdx];
     return (
-      <View style={styles.root}>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.tipDots}>
           {TIPS.map((_, i) => (
             <View key={i} style={[styles.dot, i === tipIdx && styles.dotActive]} />
@@ -165,7 +166,7 @@ export const OnboardingScreen: React.FC = () => {
         <TouchableOpacity onPress={() => nav.replace('Tabs')} style={{ marginTop: spacing.lg }}>
           <Text style={styles.skip}>{lang === 'sw' ? 'Ruka' : 'Skip'}</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -174,7 +175,7 @@ export const OnboardingScreen: React.FC = () => {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.root}>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <Text style={styles.welcomeEmoji}>🛒</Text>
         <Text style={styles.welcome}>
           {lang === 'sw' ? 'Karibu!' : 'Welcome!'}
@@ -216,7 +217,7 @@ export const OnboardingScreen: React.FC = () => {
           fullWidth
           style={{ marginTop: spacing.xl }}
         />
-      </View>
+      </SafeAreaView>
     </KeyboardAvoidingView>
   );
 };

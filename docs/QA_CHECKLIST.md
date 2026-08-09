@@ -67,6 +67,8 @@ Use this checklist before each Android demo or release candidate.
 ## Visual QA
 
 - Check Dashboard, Buy Stock, Inventory, Sell, Upgrades, Workers, Locations, Reports, Achievements, Settings, and Events on a small Android screen.
+- Test once with gesture navigation and once with the classic three-button Back/Home/Recent navigation bar.
+- Confirm the bottom tabs, Main Menu buttons, onboarding controls, modal actions, and final scroll items stay above the Android system navigation area.
 - Confirm no clipped button text, overlapping stat labels, or horizontal overflow.
 - Confirm long TZS values wrap or shrink gracefully.
 - Confirm modal inputs are not covered by the keyboard.
