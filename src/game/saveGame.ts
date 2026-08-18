@@ -3,7 +3,7 @@ import { generateDailyMissions } from './missions';
 import { generateWeeklyGoals } from './weeklyGoals';
 import { STARTING_CASH } from './economy';
 
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 
 /** Returns a finite, safe number or the fallback (guards against NaN/Infinity in corrupt saves). */
 function safeNumber(v: unknown, fallback: number): number {
@@ -47,6 +47,7 @@ export function createInitialState(): GameState {
     workerHiredOnDay: {},
     currentCityId: 'dar',
     marketSaturation: {},
+    supplierTrust: 0,
     ownedProperties: [],
     completedStoryIds: [],
     readLessonIds: [],
@@ -93,6 +94,7 @@ export function normalizeGameState(raw: Partial<GameState> | null | undefined): 
       raw.marketSaturation && typeof raw.marketSaturation === 'object'
         ? raw.marketSaturation
         : initial.marketSaturation,
+    supplierTrust: Math.max(0, Math.min(100, Math.round(safeNumber(raw.supplierTrust, initial.supplierTrust)))),
     ownedProperties: Array.isArray(raw.ownedProperties)
       ? raw.ownedProperties
       : initial.ownedProperties,

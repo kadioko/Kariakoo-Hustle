@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+Save schema: **v13** (auto-migrates).
+
+### Added
+- **Cash runway guidance** on the day-result screen: players can see cash after today, the next
+  day's operating cost, and how many days their current cash can sustain the biashara.
+- **Focused tomorrow-plan restocking**: when the advisor recommends a winning product, its action
+  now opens that product directly in the Market instead of making the player search for it.
+- **Supplier relationships**: repeat orders grow trust with the supplier network, unlocking up to
+  6% off quoted buy prices and a modest haggling advantage. Premium quality builds trust faster;
+  hard haggling deliberately slows it down.
+- **Unified live market quotes**: the Market, Smart Picks, daily advisor, and checkout now all
+  use the exact same city, saturation, and supplier-trust price calculation.
+
+### Fixed
+- **Story goal progress** now respects reputation requirements, so the Inspector chapter cannot
+  appear complete until both its day and reputation requirements are met.
+- The selling-result mascot animation now stops cleanly when leaving the screen.
+
+### Updated
+- Expo runtime, dev-client, splash-screen, and Metro runtime patch dependencies are aligned with
+  the current Expo SDK 57-compatible releases.
+- Test coverage now includes cash-runway boundaries, story reputation gating, and focused
+  tomorrow-plan restocking, supplier-trust pricing, progression, migration behavior, and
+  live-quote consistency.
+
 ## v1.3.0 — "Tanzania Nzima" (world systems update)
 
 Save schema: **v9** (auto-migrates).

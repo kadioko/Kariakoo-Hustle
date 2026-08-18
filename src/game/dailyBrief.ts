@@ -1,9 +1,9 @@
 import { PRODUCTS } from '@/data/products';
 import { GameState, Product } from '@/types';
 import { calcDailyExpenses, inventoryCapacity, inventoryUnits } from './economy';
-import { cityBuyFactor } from './cities';
-import { buyPriceImpact, saturationFor } from './marketImpact';
-import { DayPrice, dayPriceFor, isGoodDeal } from './marketPrices';
+import { saturationFor } from './marketImpact';
+import { dayPriceFor, isGoodDeal } from './marketPrices';
+import { quotedBuyPriceFor } from './marketQuote';
 import { marketOpportunityScore } from './marketIntelligence';
 import { safePurchaseQuantity } from './purchasePlanning';
 import { seasonBoostFor, seasonForDay } from './seasons';
@@ -18,14 +18,6 @@ export interface DailyMarketBrief {
   reasonEn: string;
 }
 
-function supplierPrice(state: GameState, product: Product, price: DayPrice): number {
-  return Math.round(
-    price.buyPrice
-      * cityBuyFactor(state.currentCityId, product.category)
-      * buyPriceImpact(saturationFor(state, product.id)),
-  );
-}
-
 /**
  * Picks one affordable, currently unlocked product using the same market inputs
  * shown in the market screen. It is advice, never an automatic purchase.
@@ -38,7 +30,7 @@ export function dailyMarketBrief(state: GameState): DailyMarketBrief | undefined
     .filter((product) => product.unlockLevel <= state.level)
     .map((product) => {
       const basePrice = dayPriceFor(product, state.day);
-      const quotedUnitPrice = supplierPrice(state, product, basePrice);
+      const quotedUnitPrice = quotedBuyPriceFor(state, product, basePrice);
       const price = { ...basePrice, buyPrice: quotedUnitPrice };
       const saturation = saturationFor(state, product.id);
       const seasonBoost = seasonBoostFor(state.day, product.category);

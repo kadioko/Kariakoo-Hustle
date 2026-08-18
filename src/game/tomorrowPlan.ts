@@ -12,6 +12,8 @@ export interface TomorrowPlanAction {
   body: string;
   bodyEn: string;
   route: TomorrowPlanRoute;
+  /** Optional product to open directly when the action leads to the market. */
+  productId?: string;
   tone: 'primary' | 'warning' | 'danger';
 }
 
@@ -74,6 +76,7 @@ export function tomorrowPlan(state: GameState, report: DailyReport): TomorrowPla
       body: 'Iliuza vizuri leo. Nunua batch ndogo bila kufunga cash yote.',
       bodyEn: 'It sold well today. Buy a small batch without tying up all your cash.',
       route: 'Market',
+      productId: best.id,
       tone: 'primary',
     });
   }

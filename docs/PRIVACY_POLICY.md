@@ -12,7 +12,7 @@ The game stores progress locally on your device, including:
 
 - Business name
 - Fake in-game cash and inventory
-- Game day, level, XP, reputation, achievements, reports, settings, and language preference
+- Game day, level, XP, reputation, supplier trust, achievements, reports, settings, and language preference
 - Local save backup data if the player chooses to export or import progress
 
 ## Ads

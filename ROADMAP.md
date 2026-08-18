@@ -9,6 +9,9 @@ assets, packages, or accounts: art, sound, backend/multiplayer, and shipping.
 
 **Goal:** replace emoji with flat illustrations for products, characters, cities, and properties.
 
+**Current state:** app icon, adaptive icon, splash, Play feature graphic, and initial store screenshots
+already exist in `assets/`. Product and world illustrations are the remaining visual-content work.
+
 **Asset list (priority order):**
 | Set | Count | Used in |
 |---|---|---|
@@ -29,7 +32,8 @@ add an `image` field next to each `emoji` field and render `<Image>` with emoji 
 
 ## 2. Sound & music
 
-**Blocked on:** Expo SDK upgrade, then `npx expo install expo-av` (or `expo-audio` on SDK 52+).
+**Current state:** the app is on Expo SDK 57. Choose a compatible Expo audio package and validate a
+development build before adding sound; audio is a polish task, not a launch blocker.
 
 **Sound list:** cash register (sale), coin clink (buy), whoosh (travel), page turn (lessons),
 drum hit (level up), celebration (chapter/prestige), ambient market loop (dashboard),
@@ -62,14 +66,15 @@ Keep offline-first: the local save remains the source of truth; cloud is a mirro
 
 ## 4. Ship it
 
-1. **Expo SDK upgrade** — `npx expo install expo@latest --fix`, then `npm run tsc && npm test`.
-   Expect react-navigation and safe-area-context bumps; the game code itself is SDK-agnostic.
-2. **EAS setup** — `npm i -g eas-cli`, `eas init`, `eas build --platform android --profile preview`
-   for an installable APK to test on real devices.
+1. **Physical Android QA** — build a preview APK with EAS, test the full bilingual first session,
+   pricing flow, save migration, offline mode, and small-screen navigation using `docs/QA_CHECKLIST.md`.
+2. **Release readiness** — keep the Expo 57 dependency set aligned, increment app/version code only
+   for a deliberate release, and follow `docs/ANDROID_RELEASE_BUILD.md` for signing and AAB checks.
 3. **Store prep** — Play Console account ($25 one-time), listing in Swahili + English,
    screenshots from the app (Dashboard, Market, Story, Travel), content rating questionnaire
    (no real gambling/money — it's simulated trade).
-4. **Analytics** — PostHog or Amplitude free tier; track: day_completed, prestige, chapter_completed,
+4. **Analytics** — PostHog or Amplitude free tier; track: day_completed, market_quote_viewed,
+   supplier_trust_tier, prestige, chapter_completed,
    lesson_read, retention. These five answer most balancing questions.
 5. **OTA updates** — `eas update` for JS-only fixes without store review.
 6. **Soft launch:** Tanzania + Kenya first; the Swahili-first content is the differentiator.
@@ -84,6 +89,6 @@ The lessons system (`src/data/lessons.ts`) is the seed. To grow it:
 
 ---
 
-*Everything above this file's scope — trade routes, dynamic prices, negotiation, story,
-property, living rivals, lessons, prestige, seasons, bank, streaks — is already implemented
-and tested in `src/game/` with tests in `tests/`.*
+*Everything above this file's scope — trade routes, unified live market quotes, supplier trust,
+negotiation, story, property, living rivals, lessons, prestige, seasons, bank, and streaks — is
+implemented and covered by the pure-logic test suite in `tests/`.*

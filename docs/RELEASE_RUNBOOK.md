@@ -49,11 +49,14 @@ Test:
 
 - First-session language choice
 - Buy stock
+- Confirm the daily market brief opens its recommended product and the quote matches checkout
+- Build supplier trust with repeat orders, then verify the quote reduction remains modest
 - End day
 - Save/reopen
 - Rewards & Themes screen
 - Offline mode
 - Small-screen text clipping
+- Supplier relationship, live quote, and cash-runway readability
 
 ## Preview Build
 

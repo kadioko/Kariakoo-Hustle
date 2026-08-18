@@ -24,10 +24,11 @@ const OFFEND_CHANCE: Record<HaggleAsk, number> = {
   15: 0.15,
 };
 
-export function acceptChance(ask: HaggleAsk, reputation: number, round: number): number {
+export function acceptChance(ask: HaggleAsk, reputation: number, round: number, supplierTrust: number = 0): number {
   const repBonus = Math.max(0, Math.min(100, reputation)) * 0.002; // up to +20%
+  const trustBonus = Math.max(0, Math.min(100, supplierTrust)) * 0.001; // up to +10%
   const roundPenalty = (round - 1) * 0.12; // suppliers tire of long haggles
-  return Math.max(0.05, Math.min(0.9, BASE_CHANCE[ask] + repBonus - roundPenalty));
+  return Math.max(0.05, Math.min(0.9, BASE_CHANCE[ask] + repBonus + trustBonus - roundPenalty));
 }
 
 export function attemptHaggle(
@@ -35,12 +36,13 @@ export function attemptHaggle(
   reputation: number,
   round: number,
   rand: () => number = Math.random,
+  supplierTrust: number = 0,
 ): HaggleOutcome {
   const roll = rand();
   if (roll < OFFEND_CHANCE[ask] * (round >= MAX_ROUNDS ? 1.5 : 1)) {
     return { result: 'offended' };
   }
-  if (rand() < acceptChance(ask, reputation, round)) {
+  if (rand() < acceptChance(ask, reputation, round, supplierTrust)) {
     return { result: 'accepted', discountPercent: ask };
   }
   // Counter-offer: supplier meets you partway

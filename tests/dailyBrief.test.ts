@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createInitialState } from '@/game/saveGame';
 import { dailyMarketBrief } from '@/game/dailyBrief';
 import { inventoryCapacity } from '@/game/economy';
+import { quotedBuyPriceFor } from '@/game/marketQuote';
 
 test('daily market brief is deterministic and recommends an affordable product', () => {
   const state = createInitialState();
@@ -14,6 +15,7 @@ test('daily market brief is deterministic and recommends an affordable product',
   assert.ok(first.quotedUnitPrice * first.suggestedQuantity <= state.cash);
   assert.ok(first.suggestedQuantity <= inventoryCapacity(state));
   assert.ok(first.expectedMargin >= 0);
+  assert.equal(first.quotedUnitPrice, quotedBuyPriceFor(state, first.product));
 });
 
 test('daily market brief does not recommend stock when capacity is full', () => {

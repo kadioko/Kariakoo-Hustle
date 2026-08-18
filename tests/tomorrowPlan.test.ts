@@ -44,5 +44,7 @@ test('tomorrow plan recommends a careful restock after a healthy day', () => {
   const state = { ...createInitialState(), cash: 100000 };
   const plan = tomorrowPlan(state, report({ bestSellerId: 'phone_case' }));
 
-  assert.ok(plan.some((action) => action.id === 'restock_winner'));
+  const restock = plan.find((action) => action.id === 'restock_winner');
+  assert.ok(restock);
+  assert.equal(restock.productId, 'phone_case');
 });

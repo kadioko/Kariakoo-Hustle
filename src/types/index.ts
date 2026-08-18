@@ -330,6 +330,8 @@ export interface GameState {
   currentCityId: string;
   /** Recent units bought per product — your demand moves prices */
   marketSaturation: Record<string, number>;
+  /** Relationship score with the market's supplier network. */
+  supplierTrust: number;
   /** Owned properties (stalls, warehouses, buildings) */
   ownedProperties: string[];
   /** Completed story chapter ids */

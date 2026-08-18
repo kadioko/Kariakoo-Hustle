@@ -14,6 +14,8 @@ Early game should feel generous, but not explosive. Mid-game should push the pla
 | `src/game/progression.ts` | XP curve and level pace |
 | `src/game/missions.ts` | Daily mission targets and rewards |
 | `src/game/productInsights.ts` | Product recommendation scoring |
+| `src/game/marketQuote.ts` | Live quote calculation shared by advisor, Market, and checkout |
+| `src/game/supplierTrust.ts` | Supplier trust progression, price reduction, and relationship tiers |
 | `src/data/products.ts` | Product price, demand, risk, unlock level |
 | `src/data/events.ts` | Event probability and effect size |
 | `src/data/locations.ts` | Rent, demand multiplier, capacity bonus |
@@ -51,6 +53,9 @@ Good starter products:
 - Low or medium risk
 - Medium to very high demand
 
+When tuning starter prices, check the live quote rather than only the product base price. City
+specialties, saturation, daily price movement, and supplier trust can all change what the player pays.
+
 Good mid-game products:
 
 - Buy price from 8,000 to 25,000 TZS
@@ -87,6 +92,19 @@ Inventory can be cleared manually at a discount. Clearance should be worse than 
 - A high-risk product is tying up money
 
 Clearance prices are based on product risk in `src/game/economy.ts`. Higher-risk products receive a deeper discount.
+
+## Supplier Trust
+
+Supplier trust should make consistent trading feel rewarding without becoming the dominant source of
+profit. The current cap is a 6% quote reduction at 100 trust, with a smaller haggling bonus.
+
+- Small, standard orders should grow trust steadily.
+- Premium orders can grow trust faster because they signal a quality-focused trader.
+- Budget orders and deep (10-15%) haggling should slow that growth, but never erase a player's save.
+- Test a new save, a high-trust save, and a saturated product before changing these values.
+
+Do not increase the cap casually: a large permanent supplier discount would make cash-flow, city
+specialties, and bulk discounts less meaningful.
 
 ## Random Event Tips
 
@@ -142,6 +160,8 @@ After changing balance, play at least 10 simulated days and check:
 - Did quality losses feel educational rather than random punishment?
 - Did clearance feel like a cash-flow tool rather than the best default strategy?
 - Did missions encourage good play without forcing one product strategy?
+- Did the daily advisor, Market card, and checkout quote agree for the same product?
+- Did supplier trust help a reliable trader without making premium quality or hard haggling an automatic choice?
 
 ## Save Migration
 

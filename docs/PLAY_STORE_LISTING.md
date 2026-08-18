@@ -19,6 +19,7 @@ Learn business thinking through play:
 - Buy and resell stock
 - Manage cash flow, rent, transport, loans, and salaries
 - Choose products by demand, risk, and profit margin
+- Build supplier relationships for fairer quotes and smarter bulk buying
 - Reinvest into upgrades, workers, locations, property, and new markets
 - Handle realistic business surprises, rivals, and daily reports
 - Switch between Kiswahili and English

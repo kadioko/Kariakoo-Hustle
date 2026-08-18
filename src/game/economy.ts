@@ -110,6 +110,16 @@ export function calcDailyExpenses(state: GameState): DailyExpenses {
   return { rent, transport, workerSalary, storage, loanPayment, total };
 }
 
+/**
+ * How many ordinary operating days the current cash can cover.
+ * A cap keeps the UI useful for rent-free or very low-expense businesses.
+ */
+export function cashRunwayDays(cash: number, dailyExpenses: number, cap: number = 99): number {
+  if (!Number.isFinite(cash) || cash <= 0) return 0;
+  if (!Number.isFinite(dailyExpenses) || dailyExpenses <= 0) return cap;
+  return Math.min(cap, Math.max(0, Math.floor(cash / dailyExpenses)));
+}
+
 export function settleDailyLoans(state: GameState): GameState {
   if (state.loans.length === 0) return state;
 

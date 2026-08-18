@@ -29,6 +29,8 @@ Kariakoo Hustle: Biashara Empire should feel like a local Tanzanian hustle story
 - Product risk now creates returned/faulty units, quality losses, and reputation pressure.
 - Inventory clearance lets players recover cash from slow stock at a visible discount.
 - Supplier quality is a purchase decision: budget batches are cheaper but create more returns, while premium batches cost more and protect reputation.
+- Supplier relationships make repeat trade meaningful: trust gradually lowers quoted buy prices and helps fair haggling, while deep discount requests slow that progress.
+- The same live supplier quote powers Smart Picks, the daily market brief, product cards, and checkout, so price advice remains trustworthy across the game.
 - Daily reports trace returned units and lost sales value to the exact product, making supplier-quality decisions learnable instead of mysterious.
 - Before selling, players see a break-even target based on fixed costs, property income, current prices, and the weighted margin of stock on hand.
 - Market purchases show cash remaining and protect a suggested two-day operating reserve for rent, transport, salaries, and loan payments.
@@ -40,6 +42,8 @@ Kariakoo Hustle: Biashara Empire should feel like a local Tanzanian hustle story
 - Business advisor warnings explain cash runway, rent pressure, risky stock, slow stock, and loss recovery.
 - Reports now include day analysis: what went well, what hurt profit, worker notes, and advice for tomorrow.
 - Every daily result now ends with three contextual next actions based on profit, quality, stock, cash pressure, and reinvestment opportunities.
+- The result screen now makes tomorrow's cash position explicit: cash after today, one-day operating cost, and remaining runway.
+- The daily market brief and tomorrow-plan restock actions open the suggested product directly instead of sending the player to search through the catalogue.
 
 ## Next Good Upgrades
 

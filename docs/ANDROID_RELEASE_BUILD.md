@@ -132,6 +132,8 @@ Install the APK on a physical Android phone and complete
 
 - Fresh install and first-session language selection.
 - Buying stock, selling, reports, events, upgrades, workers, and locations.
+- Daily market brief, Smart Picks, and checkout using the same live supplier quote.
+- Supplier-trust progression, haggling, and the cash-runway result card.
 - Save, force-close, reopen, and corrupted-save fallback.
 - Kiswahili and English on a small screen.
 - Offline play and failed ad initialization.

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors, font, radius, shadow, spacing } from '@/theme';
 import { useGame } from '@/state/GameContext';
 import { useToast } from '@/components/Toast';
@@ -19,8 +20,8 @@ import { PRODUCTS } from '@/data/products';
 import { Product, ProductCategory, SupplierQualityTier } from '@/types';
 import { bulkDiscountRate, calcDailyExpenses, inventoryCapacity, inventoryUnits } from '@/game/economy';
 import { seasonBoostFor, seasonForDay } from '@/game/seasons';
-import { cityBuyFactor, findCity } from '@/game/cities';
-import { buyPriceImpact, saturationFor, saturationLevel } from '@/game/marketImpact';
+import { findCity } from '@/game/cities';
+import { saturationFor, saturationLevel } from '@/game/marketImpact';
 import { attemptHaggle, HAGGLE_MIN_QTY, HaggleAsk, MAX_ROUNDS } from '@/game/negotiation';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -33,6 +34,12 @@ import { buzz } from '@/utils/haptics';
 import { marketOpportunityScore, rankMarketProducts } from '@/game/marketIntelligence';
 import { purchaseCashPosition, safePurchaseQuantity } from '@/game/purchasePlanning';
 import { SUPPLIER_QUALITIES, supplierQualityFor, supplierUnitPrice } from '@/game/supplierQuality';
+import {
+  supplierTrustAfterPurchase,
+  supplierTrustDiscount,
+  supplierTrustLevel,
+} from '@/game/supplierTrust';
+import { marketQuoteFor, quotedBuyPriceFor } from '@/game/marketQuote';
 
 const CATEGORIES: { id: 'all' | ProductCategory; sw: string; en: string; emoji: string }[] = [
   { id: 'all', sw: 'Zote', en: 'All', emoji: '🛍️' },
@@ -74,6 +81,7 @@ interface BuyModalProps {
   cash: number;
   operatingReserve: number;
   ownedQty: number;
+  supplierTrust: number;
   lang: 'sw' | 'en';
 }
 
@@ -95,6 +103,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
   cash,
   operatingReserve,
   ownedQty,
+  supplierTrust,
   lang,
 }) => {
   const [qty, setQty] = useState(1);
@@ -109,7 +118,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
   const canHaggle = qty >= HAGGLE_MIN_QTY && !haggle.locked && haggle.round <= MAX_ROUNDS;
 
   const tryHaggle = (ask: HaggleAsk) => {
-    const outcome = attemptHaggle(ask, reputation, haggle.round);
+    const outcome = attemptHaggle(ask, reputation, haggle.round, Math.random, supplierTrust);
     if (outcome.result === 'offended') {
       setHaggle({
         discount: 0,
@@ -156,6 +165,10 @@ const BuyModal: React.FC<BuyModalProps> = ({
   const hasBuyingPower = maxBuyable > 0;
   const cashTieUpPercent = cash > 0 ? total / cash : 1;
   const tiesUpCash = cashTieUpPercent >= 0.45;
+  const trustDiscount = supplierTrustDiscount(supplierTrust);
+  const trustLevel = supplierTrustLevel(supplierTrust);
+  const projectedTrust = supplierTrustAfterPurchase(supplierTrust, qty, qualityTier, haggle.discount);
+  const projectedTrustDelta = projectedTrust - supplierTrust;
 
   const adjust = (delta: number) => {
     if (!hasBuyingPower) return;
@@ -252,6 +265,35 @@ const BuyModal: React.FC<BuyModalProps> = ({
             </View>
           </Card>
 
+          <Card alt style={{ borderLeftWidth: 4, borderLeftColor: colors.primary }}>
+            <View style={styles.trustHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.trustTitle}>
+                  {lang === 'sw' ? '🤝 Uhusiano na Supplier' : '🤝 Supplier Relationship'}
+                </Text>
+                <Text style={styles.trustSubtitle}>
+                  {lang === 'sw' ? trustLevel.name : trustLevel.nameEn}
+                  {trustDiscount > 0 ? ` · −${Math.round(trustDiscount * 100)}%` : ''}
+                </Text>
+              </View>
+              <Text style={styles.trustScore}>{supplierTrust}/100</Text>
+            </View>
+            <ProgressBar value={supplierTrust} max={100} height={7} color={colors.primary} />
+            <Text style={styles.trustHint}>
+              {projectedTrustDelta > 0
+                ? lang === 'sw'
+                  ? `Order hii inaweza kuongeza trust yako kwa +${projectedTrustDelta}.`
+                  : `This order can grow your supplier trust by +${projectedTrustDelta}.`
+                : haggle.discount >= 10
+                  ? lang === 'sw'
+                    ? 'Punguzo kubwa limepunguza growth ya trust; bado ni deal yako kuchagua.'
+                    : 'A deep discount slows trust growth; the trade-off is still yours to choose.'
+                  : lang === 'sw'
+                    ? 'Nunua mara kwa mara na chagua quality nzuri kujenga bei bora taratibu.'
+                    : 'Trade consistently and choose good quality to gradually earn better prices.'}
+            </Text>
+          </Card>
+
           <Card>
             <Text style={styles.qtyLabel}>{lang === 'sw' ? 'Quality ya Supplier' : 'Supplier Quality'}</Text>
             <View style={styles.qualityRow}>
@@ -344,8 +386,8 @@ const BuyModal: React.FC<BuyModalProps> = ({
                 <>
                   <Text style={{ fontSize: font.xs, color: colors.textMuted, marginBottom: spacing.sm }}>
                     {lang === 'sw'
-                      ? `Raundi ${haggle.round}/${MAX_ROUNDS} · Sifa yako inasaidia. Ukisukuma sana, atakasirika.`
-                      : `Round ${haggle.round}/${MAX_ROUNDS} · Your reputation helps. Push too hard and they get offended.`}
+                      ? `Raundi ${haggle.round}/${MAX_ROUNDS} · Sifa na trust yako vinasaidia. Ukisukuma sana, atakasirika.`
+                      : `Round ${haggle.round}/${MAX_ROUNDS} · Reputation and supplier trust help. Push too hard and they get offended.`}
                   </Text>
                   <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                     {([5, 10, 15] as HaggleAsk[]).map((ask) => (
@@ -458,6 +500,8 @@ const BuyModal: React.FC<BuyModalProps> = ({
 };
 
 export const MarketScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { state, language, buyProduct } = useGame();
   const toast = useToast();
   const [cat, setCat] = useState<'all' | ProductCategory>('all');
@@ -470,6 +514,18 @@ export const MarketScreen: React.FC = () => {
   const used = inventoryUnits(state);
   const freeSlots = cap - used;
   const operatingReserve = calcDailyExpenses(state).total * 2;
+  const trustDiscount = supplierTrustDiscount(state.supplierTrust);
+  const trustLevel = supplierTrustLevel(state.supplierTrust);
+
+  useEffect(() => {
+    const productId = route.params?.openProductId as string | undefined;
+    if (!productId) return;
+    const product = PRODUCTS.find((item) => item.id === productId);
+    if (product && product.unlockLevel <= state.level) {
+      setSelected(product);
+    }
+    navigation.setParams({ openProductId: undefined });
+  }, [navigation, route.params?.openProductId, state.level]);
 
   const ownedQtyMap = useMemo(() => {
     const m: Record<string, number> = {};
@@ -487,20 +543,18 @@ export const MarketScreen: React.FC = () => {
       return inCat && (search === '' || nameMatch);
     });
     if (sortMode === 'catalog') return filtered;
-    return rankMarketProducts(filtered, (product) => marketOpportunityScore(
-      product,
-      dayPriceFor(product, state.day),
-      seasonBoostFor(state.day, product.category),
-      saturationFor(state, product.id),
-    ));
-  }, [cat, search, sortMode, state.day, state.marketSaturation]);
+    return rankMarketProducts(filtered, (product) => {
+      const quote = marketQuoteFor(state, product);
+      return marketOpportunityScore(
+        product,
+        { ...quote.dayPrice, buyPrice: quote.quotedBuyPrice },
+        seasonBoostFor(state.day, product.category),
+        saturationFor(state, product.id),
+      );
+    });
+  }, [cat, search, sortMode, state.currentCityId, state.day, state.marketSaturation, state.supplierTrust]);
 
-  const quotedFor = (p: Product): number => {
-    const day = dayPriceFor(p, state.day).buyPrice;
-    return Math.round(
-      day * cityBuyFactor(state.currentCityId, p.category) * buyPriceImpact(saturationFor(state, p.id)),
-    );
-  };
+  const quotedFor = (p: Product): number => quotedBuyPriceFor(state, p);
 
   const handleBuy = (
     productId: string,
@@ -584,6 +638,17 @@ export const MarketScreen: React.FC = () => {
         />
       </View>
 
+      <View style={styles.trustStrip}>
+        <Text style={styles.trustStripText}>
+          🤝 {lang === 'sw' ? trustLevel.name : trustLevel.nameEn} · {state.supplierTrust}/100
+        </Text>
+        <Text style={styles.trustStripDiscount}>
+          {trustDiscount > 0
+            ? `${lang === 'sw' ? 'Bei ya supplier' : 'Supplier price'} −${Math.round(trustDiscount * 100)}%`
+            : lang === 'sw' ? 'Jenga trust upate bei bora' : 'Build trust for better prices'}
+        </Text>
+      </View>
+
       {/* Category chips */}
       <ScrollView
         horizontal
@@ -642,12 +707,12 @@ export const MarketScreen: React.FC = () => {
           const locked = p.unlockLevel > state.level;
           const name = lang === 'en' ? p.nameEn : p.name;
           const price = dayPriceFor(p, state.day);
-          const marginPercent = price.buyPrice > 0
-            ? Math.round(((price.sellPrice - price.buyPrice) / price.buyPrice) * 100)
-            : 0;
           const insight = getProductInsight(p, lang);
           const owned = ownedQtyMap[p.id] ?? 0;
           const quoted = quotedFor(p);
+          const marginPercent = quoted > 0
+            ? Math.round(((price.sellPrice - quoted) / quoted) * 100)
+            : 0;
           const canAfford = state.cash >= quoted;
           const deal = isGoodDeal(price);
           const pricey = isExpensive(price);
@@ -764,6 +829,7 @@ export const MarketScreen: React.FC = () => {
           cash={state.cash}
           operatingReserve={operatingReserve}
           ownedQty={ownedQtyMap[selected.id] ?? 0}
+          supplierTrust={state.supplierTrust}
           lang={lang}
         />
       )}
@@ -815,6 +881,19 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   capText: { fontSize: font.xs, color: colors.textMuted },
+  trustStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 7,
+    backgroundColor: colors.primaryLight + '16',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary + '1F',
+  },
+  trustStripText: { flex: 1, color: colors.primary, fontSize: font.xs, fontWeight: '800' },
+  trustStripDiscount: { color: colors.textMuted, fontSize: 10, fontWeight: '700', textAlign: 'right' },
   catScroll: { flexGrow: 0, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
   catChip: {
     flexDirection: 'row',
@@ -947,6 +1026,11 @@ const styles = StyleSheet.create({
   insightScore: { fontSize: font.xxl, fontWeight: '900', minWidth: 42, textAlign: 'center' },
   insightLabel: { fontSize: font.sm, fontWeight: '900', color: colors.text },
   insightDesc: { fontSize: font.xs, color: colors.textMuted, lineHeight: 17, marginTop: 2 },
+  trustHeader: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginBottom: spacing.sm },
+  trustTitle: { color: colors.text, fontSize: font.sm, fontWeight: '900' },
+  trustSubtitle: { color: colors.primary, fontSize: font.xs, fontWeight: '700', marginTop: 2 },
+  trustScore: { color: colors.primary, fontSize: font.md, fontWeight: '900' },
+  trustHint: { color: colors.textMuted, fontSize: font.xs, lineHeight: 17, marginTop: spacing.sm },
   qualityRow: { flexDirection: 'row', gap: spacing.xs },
   qualityOption: {
     flex: 1,

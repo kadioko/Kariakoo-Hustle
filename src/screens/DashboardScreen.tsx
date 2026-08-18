@@ -10,6 +10,7 @@ import { t } from '@/utils/i18n';
 import { formatTZS } from '@/utils/format';
 import {
   calcDailyExpenses,
+  cashRunwayDays,
   inventoryCapacity,
   inventoryUnits,
   inventoryValue,
@@ -125,7 +126,7 @@ export const DashboardScreen: React.FC = () => {
   const health = healthScore(state.cash, expenses.total, state.reputation);
   const hColor = healthColor(health);
   const loanBalance = state.loans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
-  const runwayDays = expenses.total > 0 ? Math.floor(state.cash / expenses.total) : 99;
+  const runwayDays = cashRunwayDays(state.cash, expenses.total);
 
   const pendingEvent = state.pendingEventId ? findEvent(state.pendingEventId) : null;
   const nextProduct = [...PRODUCTS]
@@ -269,7 +270,7 @@ export const DashboardScreen: React.FC = () => {
 
           {marketBrief && (
             <Pressable
-              onPress={() => nav.navigate('Market' as any)}
+              onPress={() => nav.navigate('Market' as any, { openProductId: marketBrief.product.id } as any)}
               style={styles.marketBriefCard}
             >
               <View style={styles.marketBriefIcon}>

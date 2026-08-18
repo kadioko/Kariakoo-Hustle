@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addInventory, clearanceUnitPrice, calcDailyExpenses, settleDailyLoans } from '@/game/economy';
+import { addInventory, cashRunwayDays, clearanceUnitPrice, calcDailyExpenses, settleDailyLoans } from '@/game/economy';
 import { createInitialState, normalizeGameState } from '@/game/saveGame';
 import { nextStreak, streakBonusCash, streakBonusPercent } from '@/game/streaks';
 import { applyXp, checkAchievements } from '@/game/progression';
@@ -124,6 +124,14 @@ test('loan payments appear in daily expenses', () => {
   };
   const expenses = calcDailyExpenses(state);
   assert.equal(expenses.loanPayment, 2000);
+});
+
+test('cash runway caps healthy businesses and never falls below zero', () => {
+  assert.equal(cashRunwayDays(0, 5000), 0);
+  assert.equal(cashRunwayDays(4999, 5000), 0);
+  assert.equal(cashRunwayDays(15000, 5000), 3);
+  assert.equal(cashRunwayDays(100000, 0), 99);
+  assert.equal(cashRunwayDays(-1, 5000), 0);
 });
 
 // — Progression / achievements —

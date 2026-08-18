@@ -39,17 +39,21 @@ import { StoryChapter } from '@/game/story';
 import { dayPriceFor } from '@/game/marketPrices';
 import { repayLoanAction, takeLoanAction } from '@/game/bank';
 import { canPrestige, doPrestige } from '@/game/prestige';
-import { cityBuyFactor, travelToCity } from '@/game/cities';
-import { addSaturation, buyPriceImpact, saturationFor } from '@/game/marketImpact';
+import { travelToCity } from '@/game/cities';
+import { addSaturation } from '@/game/marketImpact';
 import { buyPropertyAction } from '@/game/property';
 import { LESSON_XP, LESSONS } from '@/data/lessons';
 import { claimRewardedAdReward, AdRewardClaimResult } from '@/game/adRewards';
 import { showRewardedAd } from '@/services/adService';
 import { SellingStrategy } from '@/game/sellingStrategy';
 import { supplierQualityFor, supplierUnitPrice } from '@/game/supplierQuality';
+import { supplierTrustAfterPurchase } from '@/game/supplierTrust';
+import { quotedBuyPriceFor } from '@/game/marketQuote';
 
 interface EndDayOutcome {
   report: DailyReport;
+  /** Exact game state after the sale, expenses, progression, and day advance. */
+  stateAfterDay: GameState;
   pendingEvent?: GameEvent;
   newlyUnlockedAchievements: string[];
   completedWeeklyGoals: { id: string; title: string; titleEn: string; rewardText: string; rewardTextEn: string }[];
@@ -157,10 +161,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const p = findProduct(productId);
       if (!p) return { ok: false, reason: 'not_found' };
       if (p.unlockLevel > state.level) return { ok: false, reason: 'not_unlocked' };
-      const dayBuyPrice = dayPriceFor(p, state.day).buyPrice;
-      const cityFactor = cityBuyFactor(state.currentCityId, p.category);
-      const saturation = buyPriceImpact(saturationFor(state, productId));
-      const quotedUnit = Math.round(dayBuyPrice * cityFactor * saturation);
+      const quotedUnit = quotedBuyPriceFor(state, p);
       const quality = supplierQualityFor(qualityTier);
       const supplierQuote = supplierUnitPrice(quotedUnit, qualityTier);
       const bulk = bulkDiscountRate(qty);
@@ -176,6 +177,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         cash: s.cash - totalCost,
         inventory: addInventory(s.inventory, productId, qty, unitPrice, s.day, quality.returnMultiplier),
         marketSaturation: addSaturation(s.marketSaturation, productId, qty),
+        supplierTrust: supplierTrustAfterPurchase(s.supplierTrust, qty, qualityTier, haggleDiscountPercent),
       }));
       return { ok: true };
     },
@@ -222,6 +224,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setState(result.state);
     return {
       report: result.report,
+      stateAfterDay: result.state,
       pendingEvent: result.pendingEvent,
       newlyUnlockedAchievements: result.newlyUnlockedAchievements,
       completedWeeklyGoals: result.completedWeeklyGoals,

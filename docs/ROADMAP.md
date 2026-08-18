@@ -42,42 +42,42 @@ The experience should feel like:
 
 Goal: Make the current prototype stable, understandable, and testable on Android.
 
-### Left To Work On
+### Completed Foundation
 
-- Test the full first-session flow on a physical Android phone.
-- Fix any visual overflow, clipped text, or awkward spacing on small screens.
-- Verify Swahili and English copy on every screen after recent systems were added.
-- Add a lightweight manual QA checklist for core flows.
-- Add basic automated unit tests for pure game logic.
-- Add app icon and splash assets that match the Kariakoo identity.
-- Clean up mojibake/encoding artifacts in older UI emoji strings if they render incorrectly on device.
-- Confirm AsyncStorage migration from save versions `1` through `10`.
-- Add a visible save/load failure fallback or warning for corrupted saves.
-- Add a "version/build" display in Settings tied to `package.json`.
+- First-session language selection, bilingual UI, small-screen safe-area handling, and a scrollable More screen are implemented.
+- A manual QA checklist, 113 pure-logic unit tests, Android identity assets, corrupt-save fallback, version/build display, and save migrations through schema v13 are in place.
+- Cash runway, break-even, purchase reserve, daily reports, and contextual next actions make the financial loop legible.
+
+### Remaining Validation
+
+- Test the full first-session flow on at least one small physical Android phone in both gesture and three-button navigation modes.
+- Verify Kiswahili and English on every screen after new content is introduced.
+- Confirm save persistence and v1-v13 migration with real historical save payloads on a development build.
+- Record and fix any device-only emoji, keyboard, text-wrap, or safe-area issues.
 
 ### Acceptance Criteria
 
 - A new player can start, buy stock, end days, unlock content, reset, and switch language without errors.
 - TypeScript passes.
-- The app runs on Android through Expo Go.
+- The app runs on an Android development or preview build.
 - The save system survives app close/reopen.
 
 ## Milestone 2: Core Game Loop Upgrade
 
 Goal: Make every day feel like a choice, not just a button press.
 
-### Left To Work On
+### Completed Foundation
 
-- Add more mission streak variants beyond the current streak system.
-- Expand weekly goals beyond revenue, unit sales, positive days, and upgrades.
-- Expand product category demand modifiers by location.
-- Add seasonal modifiers, such as school season, holiday season, rainy season, and tourist season.
-- Expand the current stock-aging system with category-specific aging and better clearance recommendations.
-- Supplier quality tiers are implemented: budget, standard, and premium batches change cost and return risk.
-- Add product batch quality so not every unit of a product has the same risk.
-- Add loan repayment summary and optional early repayment.
-- Add warnings before taking a loan if runway is already low.
-- Expand the business advice panel with more practical next-action recommendations.
+- Daily missions, weekly goals, location category boosts, rotating seasons, stock aging, clearance, supplier quality, loan payoff, and contextual advice are implemented.
+- Supplier trust adds a small long-term relationship incentive without making the economy pay-to-win.
+- Smart Picks, the daily market brief, product cards, and checkout share one live quote calculation.
+
+### Next Depth Work
+
+- Add more weekly-goal variants and location-specific missions after observing real player behavior.
+- Explore category-specific stock aging only if it creates clear, teachable decisions.
+- Add a loan-runway warning at the point of taking a loan, with no forced restriction.
+- Continue reducing decision fatigue through direct links from advice to the relevant product or screen.
 
 ### Acceptance Criteria
 
@@ -140,7 +140,6 @@ Goal: Make the app feel premium, local, and easy for casual users.
 - Add empty-state illustrations or lightweight local market graphics.
 - Add better product cards for locked/unlocked states.
 - Improve the end-day animation with clearer stages.
-- Add haptic feedback where settings allow it.
 - Add sound placeholders or simple local-inspired UI sounds.
 - Improve accessibility:
   - Larger tap targets
@@ -174,6 +173,8 @@ Goal: Tune the game so progress feels rewarding but not too fast.
 - Tune XP and level progression.
 - Tune mission rewards so they do not inflate the economy.
 - Tune achievement rewards.
+- Verify that supplier trust's 6% quote cap remains helpful but not dominant.
+- Confirm live Market, advisor, and checkout quotes remain aligned after every pricing change.
 - Define target pacing:
   - First upgrade by day 2-4
   - First worker by day 5-8
@@ -190,19 +191,19 @@ Goal: Tune the game so progress feels rewarding but not too fast.
 
 Goal: Prepare for a closed test or public beta.
 
+### Completed Foundation
+
+- EAS development, preview APK, and production AAB profiles are configured.
+- The Android package, app icon, adaptive icon, splash, feature graphic, screenshots, privacy-policy draft, Play listing copy, and release documentation are present.
+
 ### Left To Work On
 
-- Configure EAS Build.
-- Add Android package name and production app metadata.
-- Add adaptive icon, splash image, and store graphics.
-- Add privacy policy.
-- Add app store description in Swahili and English.
 - Add crash reporting plan.
 - Add basic analytics plan that respects privacy.
 - Test install size and cold start time.
 - Test offline behavior with airplane mode.
 - Test save persistence across app updates.
-- Add release checklist.
+- Host the privacy policy on a stable public URL and verify the final Play Console fields against the submitted binary.
 
 ### Acceptance Criteria
 
@@ -237,7 +238,7 @@ Goal: Prepare optional monetization without hurting trust.
 
 - Validate with players that the core loop is fun before enabling any ad SDK.
 - Test AdMob on a real Android development build.
-- Add privacy policy, Play Console ads declaration, and consent flow before release.
+- Host the prepared privacy policy, complete Play Console ads declaration, and add consent flow before enabling real ads.
 - Ship Market Insider Tip first, then bad-trade recovery, then speed delivery, then capped daily profit bonus.
 - Add real cosmetic theme switching only after the base UI is stable.
 - Design paid expansion packs around new cities, products, and story events rather than progression boosts.
@@ -253,14 +254,13 @@ Goal: Prepare optional monetization without hurting trust.
 
 These items should be addressed before the codebase grows too much:
 
-- Add tests around `salesSimulation`, `economy`, `missions`, `randomEvents`, and save migration.
+- Maintain coverage for pure game logic and add regression tests whenever pricing, sales, events, or migration behavior changes.
 - Split large screens into smaller components where needed.
 - Centralize repeated card/stat patterns.
 - Clean up any text encoding artifacts in source files.
 - Consider replacing emoji placeholders with a local icon/asset strategy.
 - Add linting and formatting scripts.
 - Add CI for `npm run typecheck`.
-- Add a consistent changelog.
 - Add typed navigation for all stack and tab routes.
 
 ## Open Product Questions
@@ -274,13 +274,11 @@ These items should be addressed before the codebase grows too much:
 
 ## Suggested Next Sprint
 
-The next best sprint is **MVP Hardening + Android QA**:
+The next best sprint is **Physical Android QA + Balance Telemetry Plan**:
 
-1. Run on a physical Android device.
-2. Fix text/spacing/rendering issues.
-3. Add unit tests for economy, sales, missions, and save migration.
-4. Add release assets: app icon, splash, and store-ready name.
-5. Add a `CHANGELOG.md`.
-6. Commit and push the current mission/roadmap changes.
+1. Install a preview build on at least one small Android phone and complete `docs/QA_CHECKLIST.md`.
+2. Run representative 30-100 day economy simulations before retuning rewards, costs, or price multipliers.
+3. Define a privacy-respecting analytics/crash-reporting plan before a broader closed test.
+4. Expand content only after testers confirm that the current market, quality, cash-flow, and supplier-trust decisions are easy to understand.
 
-This keeps the game moving toward something players can actually test, while protecting the codebase from getting messy.
+This protects the existing depth while turning real tester behavior into the next set of product decisions.

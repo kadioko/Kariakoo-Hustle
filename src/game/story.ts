@@ -9,7 +9,7 @@ export type StoryGoal =
   | { type: 'first_sale' }
   | { type: 'total_revenue'; value: number }
   | { type: 'reputation'; value: number }
-  | { type: 'day'; value: number }
+  | { type: 'day'; value: number; minReputation?: number }
   | { type: 'beat_rival'; rivalId: string }
   | { type: 'own_property' }
   | { type: 'hire_worker' }
@@ -92,7 +92,7 @@ export const STORY_CHAPTERS: StoryChapter[] = [
       'Inspector Mushi prowls Kariakoo hunting sloppy traders. Run a clean business: reach day 15 with good reputation and he\'ll have nothing on you.',
     goalText: 'Fikia siku 15 na sifa 5+',
     goalTextEn: 'Reach day 15 with 5+ reputation',
-    goal: { type: 'day', value: 15 },
+    goal: { type: 'day', value: 15, minReputation: 5 },
     reward: { reputation: 3, xp: 60 },
   },
   {
@@ -170,7 +170,8 @@ export function goalMet(state: GameState, goal: StoryGoal): boolean {
     case 'reputation':
       return state.reputation >= goal.value;
     case 'day':
-      return state.day >= goal.value && state.reputation >= 5;
+      return state.day >= goal.value
+        && (goal.minReputation === undefined || state.reputation >= goal.minReputation);
     case 'beat_rival': {
       const rival = RIVALS.find((r) => r.id === goal.rivalId);
       if (!rival) return true;
@@ -194,8 +195,12 @@ export function goalProgress(state: GameState, goal: StoryGoal): number {
       return Math.min(1, state.totalRevenue / goal.value);
     case 'reputation':
       return Math.min(1, Math.max(0, state.reputation) / goal.value);
-    case 'day':
-      return Math.min(1, state.day / goal.value);
+    case 'day': {
+      const dayProgress = Math.min(1, state.day / goal.value);
+      if (goal.minReputation === undefined) return dayProgress;
+      const reputationProgress = Math.min(1, Math.max(0, state.reputation) / goal.minReputation);
+      return Math.min(dayProgress, reputationProgress);
+    }
     case 'beat_rival': {
       const rival = RIVALS.find((r) => r.id === goal.rivalId);
       if (!rival) return 1;

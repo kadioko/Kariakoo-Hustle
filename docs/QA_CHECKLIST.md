@@ -22,6 +22,10 @@ Use this checklist before each Android demo or release candidate.
 ## Core Game Loop
 
 - Buy starter stock and verify cash decreases and inventory increases.
+- Confirm the Dashboard market brief opens the exact recommended product in Market.
+- Confirm Smart Picks, the daily market brief, the product card margin, and checkout use the same live supplier quote.
+- Place repeat orders and confirm supplier trust increases; at higher trust, confirm the quoted buy price is modestly lower.
+- Try Budget, Standard, and Premium batches plus 10%/15% haggling; confirm the projected supplier-trust message changes without blocking a valid purchase.
 - Try buying more stock than cash allows and confirm a clear warning appears.
 - Try buying more stock than capacity allows and confirm a clear warning appears.
 - End the day and verify revenue, expenses, profit/loss, remaining stock, and advice are shown.
@@ -60,7 +64,7 @@ Use this checklist before each Android demo or release candidate.
 
 - Close and reopen the app after buying stock; cash and inventory should persist.
 - Close and reopen after ending a day; day, reports, missions, and achievements should persist.
-- Test saves from versions 1, 2, 3, 4, 5, and 6 with `normalizeGameState`.
+- Test representative saves from versions 1 through 13 with `normalizeGameState`.
 - Corrupt the stored save payload during development and confirm the app shows a visible fallback warning instead of a blank screen.
 - Reset progress and confirm a clean new game starts.
 
@@ -73,6 +77,7 @@ Use this checklist before each Android demo or release candidate.
 - Confirm long TZS values wrap or shrink gracefully.
 - Confirm modal inputs are not covered by the keyboard.
 - Confirm emoji/icon strings render correctly on device and no mojibake appears.
+- Confirm the supplier relationship strip and quote text remain readable at 360 x 640 dp.
 
 ## Release Blockers
 

@@ -16,7 +16,7 @@ import { t } from '@/utils/i18n';
 import { formatTZS } from '@/utils/format';
 import { findProduct } from '@/data/products';
 import { DailyReport, EventChoice, GameEvent } from '@/types';
-import { inventoryUnits, calcDailyExpenses } from '@/game/economy';
+import { cashRunwayDays, inventoryUnits, calcDailyExpenses } from '@/game/economy';
 import { ACHIEVEMENTS } from '@/data/achievements';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
@@ -26,7 +26,7 @@ import { Pill } from '@/components/Pill';
 import { buzz } from '@/utils/haptics';
 import { streakEmoji } from '@/game/streaks';
 import { SELLING_STRATEGIES, SellingStrategy, recommendSellingStrategy, sellingStrategyInfo } from '@/game/sellingStrategy';
-import { tomorrowPlan, TomorrowPlanRoute } from '@/game/tomorrowPlan';
+import { tomorrowPlan, TomorrowPlanAction } from '@/game/tomorrowPlan';
 import { breakEvenSnapshot } from '@/game/breakEven';
 
 type Phase = 'idle' | 'selling' | 'event' | 'result';
@@ -55,12 +55,13 @@ function SellingAnimation({ onDone }: { onDone: () => void }) {
 
     progress.addListener(({ value }) => setPct(Math.round(value * 100)));
 
-    Animated.loop(
+    const bounceLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(bounceY, { toValue: -8, duration: 300, useNativeDriver: true }),
         Animated.timing(bounceY, { toValue: 0, duration: 300, useNativeDriver: true }),
       ]),
-    ).start();
+    );
+    bounceLoop.start();
 
     const stepInterval = setInterval(() => {
       setStep((s) => Math.min(STEPS.length - 1, s + 1));
@@ -70,6 +71,7 @@ function SellingAnimation({ onDone }: { onDone: () => void }) {
     return () => {
       clearInterval(stepInterval);
       clearTimeout(done);
+      bounceLoop.stop();
       progress.removeAllListeners();
     };
   }, []);
@@ -120,6 +122,7 @@ export const SellScreen: React.FC = () => {
   const toast = useToast();
   const [phase, setPhase] = useState<Phase>('idle');
   const [report, setReport] = useState<DailyReport | null>(null);
+  const [stateAfterDay, setStateAfterDay] = useState<typeof state | null>(null);
   const [pendingEvent, setPendingEvent] = useState<GameEvent | null>(null);
   const [eventResult, setEventResult] = useState<{ sw: string; en: string } | null>(null);
   const [strategy, setStrategy] = useState<SellingStrategy>('balanced');
@@ -137,12 +140,14 @@ export const SellScreen: React.FC = () => {
   const reportStrategy = report ? sellingStrategyInfo(report.strategy ?? 'balanced') : null;
 
   const runDay = () => {
+    setStateAfterDay(null);
     setPhase('selling');
   };
 
   const onSellingDone = () => {
     const outcome = endDay(strategy);
     setReport(outcome.report);
+    setStateAfterDay(outcome.stateAfterDay);
 
     buzz(state.settings, outcome.report.netProfit >= 0 ? 'success' : 'error');
     if (outcome.newlyUnlockedAchievements.length > 0 || outcome.levelsGained > 0) {
@@ -204,20 +209,24 @@ export const SellScreen: React.FC = () => {
     dismissEvent();
     setPendingEvent(null);
     setEventResult(null);
+    setStateAfterDay(null);
     setPhase('idle');
     nav.goBack();
   };
 
-  const handlePlanAction = (route: TomorrowPlanRoute) => {
+  const handlePlanAction = (action: TomorrowPlanAction) => {
     dismissEvent();
     setPendingEvent(null);
     setEventResult(null);
     setPhase('idle');
-    if (route === 'Market' || route === 'Inventory' || route === 'Upgrades' || route === 'Dashboard') {
-      nav.navigate('Tabs', { screen: route });
+    if (action.route === 'Market' || action.route === 'Inventory' || action.route === 'Upgrades' || action.route === 'Dashboard') {
+      nav.navigate('Tabs', {
+        screen: action.route,
+        ...(action.productId ? { params: { openProductId: action.productId } } : {}),
+      });
       return;
     }
-    nav.navigate(route);
+    nav.navigate(action.route);
   };
 
   // — EVENT CHOICE SCREEN —
@@ -265,7 +274,11 @@ export const SellScreen: React.FC = () => {
     const profitable = report.netProfit >= 0;
     const best = report.bestSellerId ? findProduct(report.bestSellerId) : null;
     const worst = report.worstSellerId ? findProduct(report.worstSellerId) : null;
-    const plan = tomorrowPlan(state, report);
+    const reportState = eventResult ? state : stateAfterDay ?? state;
+    const nextDayExpenses = calcDailyExpenses(reportState).total;
+    const runwayDays = cashRunwayDays(reportState.cash, nextDayExpenses);
+    const plan = tomorrowPlan(reportState, report);
+    const runwayTone = runwayDays === 0 ? 'danger' : runwayDays < 2 ? 'warning' : 'healthy';
 
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -393,6 +406,52 @@ export const SellScreen: React.FC = () => {
               )}
             </Card>
 
+            <Card
+              alt
+              style={[
+                styles.cashflowCard,
+                runwayTone === 'danger' && styles.cashflowCardDanger,
+                runwayTone === 'warning' && styles.cashflowCardWarning,
+              ]}
+            >
+              <Text style={styles.sectionTitle}>
+                {lang === 'sw' ? '💰 Nafasi ya Cash Kesho' : '💰 Tomorrow\'s Cash Position'}
+              </Text>
+              <StatRow
+                label={lang === 'sw' ? 'Cash baada ya leo' : 'Cash after today'}
+                value={formatTZS(reportState.cash)}
+                highlight
+              />
+              <StatRow
+                label={lang === 'sw' ? 'Gharama za siku moja' : 'One-day operating cost'}
+                value={`−${formatTZS(nextDayExpenses)}`}
+                negative
+              />
+              <StatRow
+                label={lang === 'sw' ? 'Runway ya biashara' : 'Business runway'}
+                value={
+                  runwayDays >= 99
+                    ? (lang === 'sw' ? '99+ siku' : '99+ days')
+                    : (lang === 'sw' ? `${runwayDays} siku` : `${runwayDays} days`)
+                }
+                positive={runwayTone === 'healthy'}
+                negative={runwayTone === 'danger'}
+              />
+              <Text style={styles.cashflowNote}>
+                {runwayTone === 'danger'
+                  ? lang === 'sw'
+                    ? 'Cash haitoshi kufunika siku inayofuata. Linda mtaji, tumia clearance kwa tahadhari, au kagua mkopo.'
+                    : 'Cash cannot cover the next operating day. Protect working capital, use clearance carefully, or review a loan.'
+                  : runwayTone === 'warning'
+                    ? lang === 'sw'
+                      ? 'Cash iko tight. Nunua batch ndogo na acha akiba ya rent na transport.'
+                      : 'Cash is tight. Buy smaller batches and keep room for rent and transport.'
+                    : lang === 'sw'
+                      ? 'Cash flow iko salama kwa sasa. Bado usifunge mtaji wote kwenye bidhaa moja.'
+                      : 'Cash flow is healthy for now. Still avoid tying all capital into one product.'}
+              </Text>
+            </Card>
+
             {report.salesBreakdown && report.salesBreakdown.length > 0 && (
               <Card>
                 <Text style={styles.sectionTitle}>
@@ -517,7 +576,7 @@ export const SellScreen: React.FC = () => {
                 {plan.map((action, index) => (
                   <TouchableOpacity
                     key={action.id}
-                    onPress={() => handlePlanAction(action.route)}
+                    onPress={() => handlePlanAction(action)}
                     style={[
                       styles.planAction,
                       action.tone === 'danger' && styles.planActionDanger,
@@ -775,6 +834,10 @@ const styles = StyleSheet.create({
   breakEvenTargetLabel: { color: colors.textMuted, fontSize: font.xs, marginTop: 2 },
   breakEvenMessage: { color: colors.primaryDark, fontSize: font.sm, fontWeight: '800', textAlign: 'center', lineHeight: 19 },
   breakEvenQualityWarning: { color: colors.warning, fontSize: font.xs, fontWeight: '800', textAlign: 'center', lineHeight: 17, marginTop: spacing.sm },
+  cashflowCard: { borderLeftWidth: 4, borderLeftColor: colors.success },
+  cashflowCardDanger: { borderLeftColor: colors.danger, backgroundColor: '#FFF8F8' },
+  cashflowCardWarning: { borderLeftColor: colors.warning, backgroundColor: '#FFF9ED' },
+  cashflowNote: { color: colors.textMuted, fontSize: font.sm, lineHeight: 20, marginTop: spacing.sm },
   advisorTip: { backgroundColor: colors.cardAlt, borderLeftWidth: 3, borderLeftColor: colors.accent, padding: spacing.sm, marginBottom: spacing.sm },
   advisorTipTitle: { color: colors.accentDark, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   advisorTipBody: { color: colors.text, fontSize: font.xs, lineHeight: 17, marginTop: 2 },

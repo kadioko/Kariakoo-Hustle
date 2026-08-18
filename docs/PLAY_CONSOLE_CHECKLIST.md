@@ -14,8 +14,8 @@ For screen-by-screen answer recommendations, also use:
 - Category: Simulation
 - Free or paid: Free
 - Contains ads: Yes, because AdMob SDK is integrated, even if ads are disabled for the first review
-- Privacy policy URL: TODO
-- Support email: TODO
+- Privacy policy URL: `https://raw.githubusercontent.com/kadioko/Kariakoo-Hustle/main/docs/PRIVACY_POLICY.md`
+- Support email: `godfreymariki@gmail.com`
 
 ## Store Listing
 

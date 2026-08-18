@@ -15,7 +15,7 @@ import {
   propertyDailyIncome,
   PROPERTIES,
 } from '@/game/property';
-import { currentChapter, evaluateStory, goalMet, STORY_CHAPTERS } from '@/game/story';
+import { currentChapter, evaluateStory, goalMet, goalProgress, STORY_CHAPTERS } from '@/game/story';
 import { rollRivalEvent } from '@/game/rivals';
 import { calcDailyExpenses, inventoryCapacity } from '@/game/economy';
 import { createInitialState } from '@/game/saveGame';
@@ -163,6 +163,16 @@ test('every story goal type evaluates without crashing', () => {
   for (const ch of STORY_CHAPTERS) {
     assert.equal(typeof goalMet(state, ch.goal), 'boolean');
   }
+});
+
+test('Inspector story progress includes its reputation requirement', () => {
+  const inspector = STORY_CHAPTERS.find((chapter) => chapter.id === 'ch4_inspekta')!;
+  const onDayButLowRep = { ...createInitialState(), day: 15, reputation: 0 };
+  const ready = { ...onDayButLowRep, reputation: 5 };
+  assert.equal(goalMet(onDayButLowRep, inspector.goal), false);
+  assert.equal(goalProgress(onDayButLowRep, inspector.goal), 0);
+  assert.equal(goalMet(ready, inspector.goal), true);
+  assert.equal(goalProgress(ready, inspector.goal), 1);
 });
 
 // — Rival events —

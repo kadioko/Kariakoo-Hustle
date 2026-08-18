@@ -15,7 +15,10 @@ The MVP is offline-friendly and uses AsyncStorage only. There is no backend, no 
 | Deterministic daily price fluctuation (buy dips, sell spikes) | Done |
 | Gentle stock aging - stale batches gradually sell slower | Done |
 | Supplier quality tiers - budget, standard, and premium purchase tradeoffs | Done |
+| Supplier relationships - repeat trade earns up to 6% better quotes | Done |
+| Unified live quotes across Smart Picks, advisor, Market, and checkout | Done |
 | Contextual tomorrow plan - three actions generated from each daily report | Done |
+| Day-end cash runway - tomorrow's operating position at a glance | Done |
 | Product-level quality reporting - returns and lost value traced to each item | Done |
 | Pre-sale break-even planner - costs, margins, and minimum successful sales | Done |
 | Operating-reserve purchase planner - protects two days of business expenses | Done |
@@ -37,7 +40,7 @@ The MVP is offline-friendly and uses AsyncStorage only. There is no backend, no 
 | 12 upgrades · 7 workers (improve with tenure) · 10 locations | Done |
 | 14 achievements with rewards | Done |
 | XP, levels, reputation, debt-aware net worth | Done |
-| Versioned saves (v9) with corruption-safe migration + export/import | Done |
+| Versioned saves (v13) with corruption-safe migration + export/import | Done |
 | Haptic feedback, animated reports, level-up celebrations | Done |
 | Unit tests for all game systems (`npm test`) | Done |
 | Monetization placeholders, no ads implemented | Done |
@@ -50,7 +53,7 @@ See `ROADMAP.md` for what's next: art, sound, Supabase multiplayer, Play Store l
 
 - Node.js 18+
 - npm
-- Expo Go on Android, or an Android emulator
+- An Android development client, preview APK, or emulator
 
 ### Install
 
@@ -61,14 +64,18 @@ npm install
 ### Run on Android
 
 ```bash
-npx expo start --android
+npx expo start --dev-client
 ```
 
-Or start Metro and scan the QR code with Expo Go:
+The project includes a native AdMob module, so Expo Go is not sufficient. Build and install an
+Android development client first:
 
 ```bash
-npx expo start
+npx eas-cli@latest build --profile development --platform android
 ```
+
+For a tester-installable APK, use `npx eas-cli@latest build --profile preview --platform android`.
+See `docs/ANDROID_RELEASE_BUILD.md` for the complete Android, AAB, signing, and release process.
 
 ### Type Check & Tests
 
@@ -88,7 +95,9 @@ src/
     economy.ts        money math, expenses, capacity, net worth, bulk discounts
     salesSimulation.ts  demand model (season, city, saturation, boosts)
     marketPrices.ts   deterministic daily price swings
+    marketQuote.ts    one source of truth for city, saturation, and trust-adjusted quotes
     marketImpact.ts   player-driven supply & demand
+    supplierTrust.ts  long-term supplier relationship pricing and haggle bonus
     cities.ts         trade routes & travel
     negotiation.ts    supplier haggling
     story.ts          campaign chapters & goals
@@ -110,7 +119,7 @@ ROADMAP.md          Art, sound, backend/multiplayer, and launch plan
 ## How To Play
 
 1. Start with 50,000 TZS at Kariakoo Street Table.
-2. Open Soko and buy products with good demand, margin, and risk — watch the daily price arrows and haggle on big orders.
+2. Open Soko and buy products with good demand, live margin, and risk — watch price arrows, supplier trust, and haggle on big orders.
 3. Tap Uza Leo to simulate one business day.
 4. Review revenue, cost of goods, expenses, event effects, and advice.
 5. Reinvest into stock, upgrades, workers, locations, and property; take loans when the math works.
@@ -142,7 +151,16 @@ Each day sells a portion of inventory based on:
 Buy/sell prices swing deterministically each day (`marketPrices.ts`) — the same day always
 quotes the same price. Buying heavily saturates a product's market (`marketImpact.ts`):
 suppliers charge up to +15% more and sales slow up to 25%, decaying 30% per night.
-Orders of 10+ units unlock haggling (`negotiation.ts`) with reputation-driven odds.
+Orders of 10+ units unlock haggling (`negotiation.ts`) with reputation- and supplier-trust-driven odds.
+Every player-facing quote is calculated in `marketQuote.ts`, so the city, saturation, and trust-adjusted
+price shown in Smart Picks, the daily advisor, the Market, and checkout stays consistent.
+
+### Supplier relationships
+
+Every completed order builds a relationship with the supplier network. Supplier trust is capped at
+100 and grants a modest buy-price reduction of up to 6%, plus a small haggling advantage. Premium
+batches build trust faster; budget batches and aggressive haggling slow that progress. The system is
+designed to reward reliable trading without replacing product, cash-flow, or quality decisions.
 
 ### Trade routes, property & story
 
@@ -171,10 +189,10 @@ Each day generates two small missions based on level, such as hitting revenue, u
 
 ### Save system
 
-The app saves locally through AsyncStorage (schema v12). Saves include:
+The app saves locally through AsyncStorage (schema v13). Saves include:
 
 - Cash, day, level, XP, reputation, streaks, legacy level
-- Inventory and market saturation
+- Inventory, market saturation, and supplier trust
 - Upgrades, workers (+hire days), locations, properties, current city
 - Achievements, story progress, lessons read
 - Reports and lifetime totals
